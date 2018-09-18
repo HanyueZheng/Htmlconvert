@@ -501,6 +501,29 @@ namespace convert
             txtPatentlist.Add(plist);
         }
 
+        public static void ProcessTranslate()
+        {
+            string document = @"C:\Users\12773\Desktop\demo.docx";
+            foreach (List<string> plist in txtPatentlist)
+            {
+                OpenAndAddTextToWordDocument(document, plist[0]);
+                foreach(string tag in plist)
+                {
+                    switch (tag)
+                    {
+                        case "b":
+                            SetBoldFont(document);
+                            break;
+                        case "em":
+                            SetItalic(document);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        }
+
         public static void OpenAndAddTextToWordDocument(string filepath, string txt1)
         {
             // Open a WordprocessingDocument for editing using the filepath.
@@ -526,7 +549,7 @@ namespace convert
             Bold bd = new Bold();
             rPr.AppendChild(bd);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
+            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
             wordprocessingDocument.MainDocumentPart.Document.Save();
 
@@ -541,7 +564,7 @@ namespace convert
             Italic it = new Italic();
             rPr.AppendChild(it);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
+            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
             wordprocessingDocument.MainDocumentPart.Document.Save();
 
@@ -556,7 +579,7 @@ namespace convert
             Underline ul = new Underline();
             rPr.AppendChild(ul);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
+            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
             wordprocessingDocument.MainDocumentPart.Document.Save();
 
