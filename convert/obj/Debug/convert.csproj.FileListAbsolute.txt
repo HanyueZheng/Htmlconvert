@@ -1,0 +1,14 @@
+C:\Users\12773\source\repos\convert\convert\bin\Debug\convert.exe.config
+C:\Users\12773\source\repos\convert\convert\bin\Debug\convert.exe
+C:\Users\12773\source\repos\convert\convert\bin\Debug\convert.pdb
+C:\Users\12773\source\repos\convert\convert\bin\Debug\DocumentFormat.OpenXml.dll
+C:\Users\12773\source\repos\convert\convert\bin\Debug\HtmlAgilityPack.dll
+C:\Users\12773\source\repos\convert\convert\bin\Debug\DocumentFormat.OpenXml.xml
+C:\Users\12773\source\repos\convert\convert\bin\Debug\HtmlAgilityPack.pdb
+C:\Users\12773\source\repos\convert\convert\bin\Debug\HtmlAgilityPack.xml
+C:\Users\12773\source\repos\convert\convert\obj\Debug\convert.csprojResolveAssemblyReference.cache
+C:\Users\12773\source\repos\convert\convert\obj\Debug\convert.Properties.Resources.resources
+C:\Users\12773\source\repos\convert\convert\obj\Debug\convert.csproj.GenerateResource.Cache
+C:\Users\12773\source\repos\convert\convert\obj\Debug\convert.exe
+C:\Users\12773\source\repos\convert\convert\obj\Debug\convert.pdb
+C:\Users\12773\source\repos\convert\convert\bin\Debug\WindowsBase.dll
