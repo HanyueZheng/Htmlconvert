@@ -60,5 +60,10 @@ namespace convert
         {
             return this.text;
         }
+
+        public Node getParent()
+        {
+            return this.Parent;
+        }
     }
 }

@@ -14,6 +14,7 @@ namespace convert
 {
     class Program
     {
+        static List<List<string>> txtPatentlist = new List<List<string>>();
         static void Main(string[] args)
         {
             string path = "C:/Users/12773/Desktop/DemoHtml.html";
@@ -478,11 +479,26 @@ namespace convert
                     SetBoldFont(document);
                     SetItalic(document);
                     SetUnderline(document);
+                    GetTxtParentList(n1);
                     break;
 
                 default:
+                    for (int i = 0; i < count; i++)
+                        HtmlConvert(nlist[i]);
                     break;
             }            
+        }
+
+        public static void GetTxtParentList(Node n)
+        {
+            List<string> plist = new List<string>();
+            plist.Add(n.getText());
+            while (n.getParent().getNodename() != "body")
+            {
+                plist.Add(n.getParent().getNodename());
+                n = n.getParent();
+            }
+            txtPatentlist.Add(plist);
         }
 
         public static void OpenAndAddTextToWordDocument(string filepath, string txt1)
