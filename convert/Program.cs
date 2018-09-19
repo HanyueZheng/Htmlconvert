@@ -19,6 +19,7 @@ namespace convert
         {
             string path = "C:/Users/12773/Desktop/DemoHtml.html";
             Program.ParseHtml();
+            ProcessTranslate();
             string document = @"C:\Users\12773\Desktop\demo.docx";
             string fileName = @"C:\Users\12773\Desktop\aa.png";
             //string strTxt = "Append text in body - OpenAndAddTextToWordDocument";
@@ -423,7 +424,7 @@ namespace convert
             //HtmlDocument doc = new HtmlDocument();
             //doc.Load(filepath);
             var html =
-        @"<body><h1><b>bold</b> heading</h1><p>This is <b>underlined</b> paragraph</p></body>";
+        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p></body>";
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -443,6 +444,12 @@ namespace convert
                 tnode.setNodename(nodename);
                 tnode.setParent(pnode);
                 pnode.AddChild(tnode);
+                if (nodename == "h1" || nodename == "p")
+                {
+                    Node teminal = new Node();
+                    teminal.setNodename("\n");
+                    pnode.AddChild(teminal);
+                }
                 if (nodename == "#text")
                     tnode.setText(n.InnerHtml);
                 else
@@ -475,11 +482,13 @@ namespace convert
 
                 case "#text":
                     string txt = n1.getText();
-                    OpenAndAddTextToWordDocument(document, txt);
-                    SetBoldFont(document);
-                    SetItalic(document);
-                    SetUnderline(document);
                     GetTxtParentList(n1);
+                    break;
+
+                case "\n":
+                    List<string> taglist = new List<string>();
+                    taglist.Add("endtag");
+                    txtPatentlist.Add(taglist);
                     break;
 
                 default:
@@ -504,17 +513,22 @@ namespace convert
         public static void ProcessTranslate()
         {
             string document = @"C:\Users\12773\Desktop\demo.docx";
-            foreach (List<string> plist in txtPatentlist)
+            int begintag = 0;
+            for (int i = 0; i < txtPatentlist.Count(); i++)
             {
-                OpenAndAddTextToWordDocument(document, plist[0]);
-                foreach(string tag in plist)
+                if (txtPatentlist[i].Contains("endtag"))
+                {
+                    int endtag = i;
+                }
+                OpenAndAddTextToWordDocument(document, txtPatentlist[i][0]);
+                foreach(string tag in txtPatentlist[i])
                 {
                     switch (tag)
                     {
                         case "b":
                             SetBoldFont(document);
                             break;
-                        case "em":
+                        case "u":
                             SetItalic(document);
                             break;
                         default:
