@@ -27,7 +27,7 @@ namespace convert
             //OpenAndAddTextToWordDocument(document, strTxt);
             //OpenAndAddTextToWordDocument(document, strTxt);
             //OpenAndAddTextToWordDocument(document, strTxt);
-            InsertAPicture(document, fileName);
+            
             //BookMark(document);
             //SetTitle(document);
 
@@ -82,93 +82,6 @@ namespace convert
 
         }
 
-        public static void InsertAPicture(string document, string fileName)
-        {
-            using (WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(document, true))
-            {
-                MainDocumentPart mainPart = wordprocessingDocument.MainDocumentPart;
-
-                ImagePart imagePart = mainPart.AddImagePart(ImagePartType.Jpeg);
-
-                using (FileStream stream = new FileStream(fileName, FileMode.Open))
-                {
-                    imagePart.FeedData(stream);
-                }
-
-                AddImageToBody(wordprocessingDocument, mainPart.GetIdOfPart(imagePart));
-            }
-        }
-
-        private static void AddImageToBody(WordprocessingDocument wordDoc, string relationshipId)
-        {
-            // Define the reference of the image.
-            var element =
-                 new Drawing(
-                     new DW.Inline(
-                         new DW.Extent() { Cx = 990000L, Cy = 792000L },
-                         new DW.EffectExtent()
-                         {
-                             LeftEdge = 0L,
-                             TopEdge = 0L,
-                             RightEdge = 0L,
-                             BottomEdge = 0L
-                         },
-                         new DW.DocProperties()
-                         {
-                             Id = (UInt32Value)1U,
-                             Name = "Picture 1"
-                         },
-                         new DW.NonVisualGraphicFrameDrawingProperties(
-                             new A.GraphicFrameLocks() { NoChangeAspect = true }),
-                         new A.Graphic(
-                             new A.GraphicData(
-                                 new PIC.Picture(
-                                     new PIC.NonVisualPictureProperties(
-                                         new PIC.NonVisualDrawingProperties()
-                                         {
-                                             Id = (UInt32Value)0U,
-                                             Name = "New Bitmap Image.jpg"
-                                         },
-                                         new PIC.NonVisualPictureDrawingProperties()),
-                                     new PIC.BlipFill(
-                                         new A.Blip(
-                                             new A.BlipExtensionList(
-                                                 new A.BlipExtension()
-                                                 {
-                                                     Uri =
-                                                        "{28A0092B-C50C-407E-A947-70E740481C1C}"
-                                                 })
-                                         )
-                                         {
-                                             Embed = relationshipId,
-                                             CompressionState =
-                                             A.BlipCompressionValues.Print
-                                         },
-                                         new A.Stretch(
-                                             new A.FillRectangle())),
-                                     new PIC.ShapeProperties(
-                                         new A.Transform2D(
-                                             new A.Offset() { X = 0L, Y = 0L },
-                                             new A.Extents() { Cx = 990000L, Cy = 792000L }),
-                                         new A.PresetGeometry(
-                                             new A.AdjustValueList()
-                                         )
-                                         { Preset = A.ShapeTypeValues.Rectangle }))
-                             )
-                             { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
-                     )
-                     {
-                         DistanceFromTop = (UInt32Value)0U,
-                         DistanceFromBottom = (UInt32Value)0U,
-                         DistanceFromLeft = (UInt32Value)0U,
-                         DistanceFromRight = (UInt32Value)0U,
-                         EditId = "50D07946"
-                     });
-
-            // Append the reference to body, the element should be in a Run.
-            wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
-        }
 
         // Insert a table into a word processing document.
         public static void CreateTable(string fileName)
@@ -424,7 +337,7 @@ namespace convert
             //HtmlDocument doc = new HtmlDocument();
             //doc.Load(filepath);
             var html =
-        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p></body>";
+        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p><img src='C:\Users\12773\Desktop\aa.png'/></body>";
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -444,11 +357,15 @@ namespace convert
                 tnode.setNodename(nodename);
                 tnode.setParent(pnode);
                 pnode.AddChild(tnode);
-                if (nodename == "h1" || nodename == "p")
+                if (nodename == "h1" || nodename == "p" || nodename == "img")
                 {
                     Node teminal = new Node();
                     teminal.setNodename("\n");
                     pnode.AddChild(teminal);
+                }
+                if (nodename == "img")
+                {
+                    tnode.setSrc(n.Attributes["src"].Value);
                 }
                 if (nodename == "#text")
                     tnode.setText(n.InnerHtml);
@@ -485,6 +402,14 @@ namespace convert
                     GetTxtParentList(n1);
                     break;
 
+                case "img":
+                    string src = n1.getSrc();
+                    List<string> imglist = new List<string>();
+                    imglist.Add("img");
+                    imglist.Add(src);
+                    txtPatentlist.Add(imglist);
+                    break; 
+
                 case "\n":
                     List<string> taglist = new List<string>();
                     taglist.Add("endtag");
@@ -513,29 +438,66 @@ namespace convert
         public static void ProcessTranslate()
         {
             string document = @"C:\Users\12773\Desktop\demo.docx";
+            string fileName = @"C:\Users\12773\Desktop\aa.png";
             int begintag = 0;
-            for (int i = 0; i < txtPatentlist.Count(); i++)
+            int endtag = 0;
+            while (begintag < txtPatentlist.Count())
+            {
+                endtag = GetInterval(begintag);
+
+                WordprocessingDocument wordprocessingDocument =
+                    WordprocessingDocument.Open(document, true);
+                Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                Paragraph para = body.AppendChild(new Paragraph());
+
+                for (; begintag < endtag; begintag++)
+                {
+                    Run run = para.AppendChild(new Run());
+                    if (txtPatentlist[begintag][0] != "endtag")
+                    {
+                        run.AppendChild(new Text(txtPatentlist[begintag][0] + " "));
+                    }
+                    foreach (string tag in txtPatentlist[begintag])
+                    {
+                        switch (tag)
+                        {
+                            case "b":
+                                SetBoldFont(run, wordprocessingDocument);
+                                break;
+                            case "u":
+                                SetItalic(run, wordprocessingDocument);
+                                break;
+                            case "strong":
+                                SetBoldFont(run, wordprocessingDocument);
+                                break;
+                            case "img":
+                                InsertAPicture(document, fileName);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+                wordprocessingDocument.Close();
+                begintag = endtag + 1;
+
+            }
+          
+        }
+
+        public static int GetInterval(int i)
+        {
+            int endtag = 0;
+            for (; i < txtPatentlist.Count(); i++)
             {
                 if (txtPatentlist[i].Contains("endtag"))
                 {
-                    int endtag = i;
+                    endtag = i;
+                    return endtag;
                 }
-                OpenAndAddTextToWordDocument(document, txtPatentlist[i][0]);
-                foreach(string tag in txtPatentlist[i])
-                {
-                    switch (tag)
-                    {
-                        case "b":
-                            SetBoldFont(document);
-                            break;
-                        case "u":
-                            SetItalic(document);
-                            break;
-                        default:
-                            break;
-                    }
-                }
+
             }
+            return endtag;
         }
 
         public static void OpenAndAddTextToWordDocument(string filepath, string txt1)
@@ -555,49 +517,122 @@ namespace convert
             wordprocessingDocument.Close();
         }
 
-        public static void SetBoldFont(string filepath)
-        {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
+        public static void SetBoldFont(Run r, WordprocessingDocument wordprocessingDocument)
+        {           
             RunProperties rPr = new RunProperties();
             Bold bd = new Bold();
             rPr.AppendChild(bd);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
             wordprocessingDocument.MainDocumentPart.Document.Save();
-
-            wordprocessingDocument.Close();
         }
 
-        public static void SetItalic(string filepath)
+        public static void SetItalic(Run r, WordprocessingDocument wordprocessingDocument)
         {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
             RunProperties rPr = new RunProperties();
             Italic it = new Italic();
             rPr.AppendChild(it);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
             wordprocessingDocument.MainDocumentPart.Document.Save();
-
-            wordprocessingDocument.Close();
         }
 
-        public static void SetUnderline(string filepath)
+        public static void SetUnderline(Run r, WordprocessingDocument wordprocessingDocument)
         {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
             RunProperties rPr = new RunProperties();
             Underline ul = new Underline();
             rPr.AppendChild(ul);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().Last();
             r.PrependChild<RunProperties>(rPr);
-            wordprocessingDocument.MainDocumentPart.Document.Save();
+            wordprocessingDocument.MainDocumentPart.Document.Save();             
+        }
 
-            wordprocessingDocument.Close();
+        public static void InsertAPicture(string document, string fileName)
+        {
+            using (WordprocessingDocument wordprocessingDocument =
+                WordprocessingDocument.Open(document, true))
+            {
+                MainDocumentPart mainPart = wordprocessingDocument.MainDocumentPart;
+
+                ImagePart imagePart = mainPart.AddImagePart(ImagePartType.Jpeg);
+
+                using (FileStream stream = new FileStream(fileName, FileMode.Open))
+                {
+                    imagePart.FeedData(stream);
+                }
+
+                AddImageToBody(wordprocessingDocument, mainPart.GetIdOfPart(imagePart));
+            }
+        }
+
+        private static void AddImageToBody(WordprocessingDocument wordDoc, string relationshipId)
+        {
+            // Define the reference of the image.
+            var element =
+                 new Drawing(
+                     new DW.Inline(
+                         new DW.Extent() { Cx = 990000L, Cy = 792000L },
+                         new DW.EffectExtent()
+                         {
+                             LeftEdge = 0L,
+                             TopEdge = 0L,
+                             RightEdge = 0L,
+                             BottomEdge = 0L
+                         },
+                         new DW.DocProperties()
+                         {
+                             Id = (UInt32Value)1U,
+                             Name = "Picture 1"
+                         },
+                         new DW.NonVisualGraphicFrameDrawingProperties(
+                             new A.GraphicFrameLocks() { NoChangeAspect = true }),
+                         new A.Graphic(
+                             new A.GraphicData(
+                                 new PIC.Picture(
+                                     new PIC.NonVisualPictureProperties(
+                                         new PIC.NonVisualDrawingProperties()
+                                         {
+                                             Id = (UInt32Value)0U,
+                                             Name = "New Bitmap Image.jpg"
+                                         },
+                                         new PIC.NonVisualPictureDrawingProperties()),
+                                     new PIC.BlipFill(
+                                         new A.Blip(
+                                             new A.BlipExtensionList(
+                                                 new A.BlipExtension()
+                                                 {
+                                                     Uri =
+                                                        "{28A0092B-C50C-407E-A947-70E740481C1C}"
+                                                 })
+                                         )
+                                         {
+                                             Embed = relationshipId,
+                                             CompressionState =
+                                             A.BlipCompressionValues.Print
+                                         },
+                                         new A.Stretch(
+                                             new A.FillRectangle())),
+                                     new PIC.ShapeProperties(
+                                         new A.Transform2D(
+                                             new A.Offset() { X = 0L, Y = 0L },
+                                             new A.Extents() { Cx = 990000L, Cy = 792000L }),
+                                         new A.PresetGeometry(
+                                             new A.AdjustValueList()
+                                         )
+                                         { Preset = A.ShapeTypeValues.Rectangle }))
+                             )
+                             { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+                     )
+                     {
+                         DistanceFromTop = (UInt32Value)0U,
+                         DistanceFromBottom = (UInt32Value)0U,
+                         DistanceFromLeft = (UInt32Value)0U,
+                         DistanceFromRight = (UInt32Value)0U,
+                         EditId = "50D07946"
+                     });
+
+            // Append the reference to body, the element should be in a Run.
+            wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
         }
 
     }

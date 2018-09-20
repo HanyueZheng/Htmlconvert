@@ -12,18 +12,20 @@ namespace convert
         private List<Node> Childs = new List<Node>();
         private string nodename;
         private string text;
+        private string src;
 
         public Node()
         {
            
         }
 
-        public Node(Node parent, List<Node> Childs, string nodename, string text)
+        public Node(Node parent, List<Node> Childs, string nodename, string text, string src)
         {
             this.Parent = parent;
             this.Childs = Childs;
             this.nodename = nodename;
             this.text = text;
+            this.src = src;
         }
 
         public void AddChild(Node n)
@@ -64,6 +66,16 @@ namespace convert
         public Node getParent()
         {
             return this.Parent;
+        }
+
+        public string getSrc()
+        {
+            return this.src;
+        }
+
+        public void setSrc(string src)
+        {
+            this.src = src;
         }
     }
 }
