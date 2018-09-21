@@ -8,7 +8,7 @@ using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using System.Collections.Generic;
 using System.Linq;
 using HtmlAgilityPack;
-
+using System;
 
 namespace convert
 {
@@ -23,7 +23,6 @@ namespace convert
             string document = @"C:\Users\12773\Desktop\demo.docx";
             string fileName = @"C:\Users\12773\Desktop\aa.png";
             //string strTxt = "Append text in body - OpenAndAddTextToWordDocument";
-            //CreateTable(document);
             //OpenAndAddTextToWordDocument(document, strTxt);
             //OpenAndAddTextToWordDocument(document, strTxt);
             //OpenAndAddTextToWordDocument(document, strTxt);
@@ -81,94 +80,7 @@ namespace convert
 
 
         }
-
-
-        // Insert a table into a word processing document.
-        public static void CreateTable(string fileName)
-        {
-            // Use the file name and path passed in as an argument 
-            // to open an existing Word 2007 document.
-
-            using (WordprocessingDocument doc
-                = WordprocessingDocument.Open(fileName, true))
-            {
-                // Create an empty table.
-                Table table = new Table();
-
-                // Create a TableProperties object and specify its border information.
-                TableProperties tblProp = new TableProperties(
-                    new TableBorders(
-                        new TopBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new BottomBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new LeftBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new RightBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new InsideHorizontalBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new InsideVerticalBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        }
-                    )
-                );
-
-                // Append the TableProperties object to the empty table.
-                table.AppendChild<TableProperties>(tblProp);
-
-                // Create a row.
-                TableRow tr = new TableRow();
-
-                // Create a cell.
-                TableCell tc1 = new TableCell();
-
-                // Specify the width property of the table cell.
-                tc1.Append(new TableCellProperties(
-                    new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" }));
-
-                // Specify the table cell content.
-                tc1.Append(new Paragraph(new Run(new Text("some text1"))));
-
-                // Append the table cell to the table row.
-                tr.Append(tc1);
-
-                // Create a second table cell by copying the OuterXml value of the first table cell.
-                TableCell tc2 = new TableCell(tc1.OuterXml);
-
-                // Append the table cell to the table row.
-                tr.Append(tc2);
-
-                // Append the table row to the table.
-                table.Append(tr);
-
-                // Append the table to the document.
-                doc.MainDocumentPart.Document.Body.Append(table);
-            }
-        }
+        
 
         
         public static void SetTitle(string filepath)
@@ -337,7 +249,7 @@ namespace convert
             //HtmlDocument doc = new HtmlDocument();
             //doc.Load(filepath);
             var html =
-        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p><img src='C:\Users\12773\Desktop\aa.png'/></body>";
+        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p><img src='C:\Users\12773\Desktop\aa.png'/><table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table></body>";
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -357,7 +269,7 @@ namespace convert
                 tnode.setNodename(nodename);
                 tnode.setParent(pnode);
                 pnode.AddChild(tnode);
-                if (nodename == "h1" || nodename == "p" || nodename == "img")
+                if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table")
                 {
                     Node teminal = new Node();
                     teminal.setNodename("\n");
@@ -408,7 +320,7 @@ namespace convert
                     imglist.Add("img");
                     imglist.Add(src);
                     txtPatentlist.Add(imglist);
-                    break; 
+                    break;
 
                 case "\n":
                     List<string> taglist = new List<string>();
@@ -430,6 +342,12 @@ namespace convert
             while (n.getParent().getNodename() != "body")
             {
                 plist.Add(n.getParent().getNodename());
+                if (n.getParent().getNodename() == "tr")
+                {
+                    int colcount = n.getParent().getChilds().Count();
+                    plist.Add(colcount.ToString());
+                }
+                
                 n = n.getParent();
             }
             txtPatentlist.Add(plist);
@@ -438,49 +356,59 @@ namespace convert
         public static void ProcessTranslate()
         {
             string document = @"C:\Users\12773\Desktop\demo.docx";
-            string fileName = @"C:\Users\12773\Desktop\aa.png";
             int begintag = 0;
             int endtag = 0;
             while (begintag < txtPatentlist.Count())
             {
                 endtag = GetInterval(begintag);
 
-                WordprocessingDocument wordprocessingDocument =
-                    WordprocessingDocument.Open(document, true);
-                Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
-                Paragraph para = body.AppendChild(new Paragraph());
-
-                for (; begintag < endtag; begintag++)
+                if (txtPatentlist[begintag][0] == "img")
                 {
-                    Run run = para.AppendChild(new Run());
-                    if (txtPatentlist[begintag][0] != "endtag")
+                    InsertAPicture(document, txtPatentlist[begintag][1]);
+                }
+
+                else if (txtPatentlist[begintag].Contains("table"))
+                {
+                    int trindex = txtPatentlist[begintag].IndexOf("tr") + 1;
+                    int colcount = Int32.Parse(txtPatentlist[begintag][trindex]);
+                    int rowcount = (endtag - begintag) / colcount;
+                    CreateTable(document, colcount, rowcount, begintag);
+                }
+                else
+                {
+                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    Paragraph para = body.AppendChild(new Paragraph());
+
+                    for (; begintag < endtag; begintag++)
                     {
-                        run.AppendChild(new Text(txtPatentlist[begintag][0] + " "));
-                    }
-                    foreach (string tag in txtPatentlist[begintag])
-                    {
-                        switch (tag)
+                        Run run = para.AppendChild(new Run());
+                        if (txtPatentlist[begintag][0] != "endtag")
                         {
-                            case "b":
-                                SetBoldFont(run, wordprocessingDocument);
-                                break;
-                            case "u":
-                                SetItalic(run, wordprocessingDocument);
-                                break;
-                            case "strong":
-                                SetBoldFont(run, wordprocessingDocument);
-                                break;
-                            case "img":
-                                InsertAPicture(document, fileName);
-                                break;
-                            default:
-                                break;
+                            run.AppendChild(new Text(txtPatentlist[begintag][0] + " "));
+                        }
+                        foreach (string tag in txtPatentlist[begintag])
+                        {
+                            switch (tag)
+                            {
+                                case "b":
+                                    SetBoldFont(run, wordprocessingDocument);
+                                    break;
+                                case "u":
+                                    SetItalic(run, wordprocessingDocument);
+                                    break;
+                                case "strong":
+                                    SetBoldFont(run, wordprocessingDocument);
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
+                    wordprocessingDocument.Close();
                 }
-                wordprocessingDocument.Close();
+                                
                 begintag = endtag + 1;
-
             }
           
         }
@@ -633,6 +561,46 @@ namespace convert
 
             // Append the reference to body, the element should be in a Run.
             wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
+        }
+
+        public static void CreateTable(string fileName, int colcount, int rowcount, int begintag)
+        {
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(fileName, true);
+            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+
+            Table tb = new Table();
+
+            // Set the style and width for the table.
+            TableProperties tableProp = new TableProperties();
+            TableStyle tableStyle = new TableStyle() { Val = "TableGrid" };
+
+            // Make the table width 100% of the page width.
+            TableWidth tableWidth = new TableWidth() { Width = "2500", Type = TableWidthUnitValues.Pct };
+
+            // Apply
+            tableProp.Append(tableStyle, tableWidth);
+            tb.AppendChild(tableProp);
+
+            TableGrid tg = new TableGrid();
+            for (int i = 0; i < colcount; i++)
+            {
+                GridColumn gc = new GridColumn();
+                tg.AppendChild(gc);
+            }
+            tb.AppendChild(tg);
+
+            for (int j = 0; j < rowcount; j++)
+            {
+                TableRow tr = new TableRow();
+                for (int k = 0; k < colcount; k++)
+                {
+                    TableCell tc = new TableCell(new Paragraph(new Run(new Text(txtPatentlist[begintag][0]))));
+                    tr.Append(tc);
+                    begintag++;
+                }
+                tb.AppendChild(tr);
+            }
+            body.AppendChild(tb);
         }
 
     }
