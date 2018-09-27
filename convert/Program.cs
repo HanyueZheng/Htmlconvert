@@ -193,7 +193,14 @@ namespace convert
             //doc.Load(filepath);
             string document = @"C:\Users\12773\Desktop\demo.docx";
             var html =
-        @"<body><h1><b>bold</b> heading</h1><p>This is <u>italic</u> paragraph</p><img src='C:\Users\12773\Desktop\aa.png'/><table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table><ul><li>List1</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul><pre><code class='lang - javascript'>function test() {console.log('Hello world!');}</code></pre></body>";
+        @"<body>
+<h1><b>bold</b> heading</h1>
+<p>This is <u>italic</u> paragraph</p>
+<img src='C:\Users\12773\Desktop\aa.png'/>
+<table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table>
+<ul><li>List1</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul>
+<pre><code class='lang - javascript'>function test() {console.log('Hello world!');}</code></pre>
+</body>";
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -208,25 +215,28 @@ namespace convert
         {
             foreach (var n in node.ChildNodes)
             {
-                Node tnode = new Node();
-                var nodename = n.Name;
-                tnode.setNodename(nodename);
-                tnode.setParent(pnode);
-                pnode.AddChild(tnode);
-                if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
+                if(n.NodeType == HtmlNodeType.Element)
                 {
-                    Node teminal = new Node();
-                    teminal.setNodename("\n");
-                    pnode.AddChild(teminal);
+                    Node tnode = new Node();
+                    var nodename = n.Name;
+                    tnode.setNodename(nodename);
+                    tnode.setParent(pnode);
+                    pnode.AddChild(tnode);
+                    if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
+                    {
+                        Node teminal = new Node();
+                        teminal.setNodename("\n");
+                        pnode.AddChild(teminal);
+                    }
+                    if (nodename == "img")
+                    {
+                        tnode.setSrc(n.Attributes["src"].Value);
+                    }
+                    if (nodename == "#text")
+                        tnode.setText(n.InnerHtml);
+                    else
+                        traverse(n, tnode);
                 }
-                if (nodename == "img")
-                {
-                    tnode.setSrc(n.Attributes["src"].Value);
-                }
-                if (nodename == "#text")
-                    tnode.setText(n.InnerHtml);
-                else
-                    traverse(n, tnode);
             }
         }
 
@@ -345,26 +355,28 @@ namespace convert
                 {
                     WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
                     Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
-                    Paragraph para = body.AppendChild(new Paragraph());
+                    Paragraph para = new Paragraph();
+
+                    ParagraphProperties paraProperties = new ParagraphProperties();
+                    ParagraphBorders paraBorders = new ParagraphBorders();
+                    TopBorder top = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    BottomBorder bottom = new BottomBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    LeftBorder left = new LeftBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    RightBorder right = new RightBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    paraBorders.Append(bottom);
+                    paraBorders.Append(top);
+                    paraBorders.Append(left);
+                    paraBorders.Append(right);
+                    paraProperties.Append(paraBorders);
+                    para.Append(paraProperties);
 
                     Run run = para.AppendChild(new Run());
                     run.AppendChild(new Text(txtPatentlist[begintag][0]));
 
-                    //Border border = new Border();
-                    //ParagraphProperties ppr = new ParagraphProperties();
-                    //ParagraphBorders pbdr = new ParagraphBorders();
-                    //TopBorder tb = new TopBorder() { Size = 24, Space = 1, Color = "FF0000" };
-                    //BottomBorder bb = new BottomBorder() { Size = 24, Space = 1, Color = "FF0000" };
-                    //LeftBorder lb = new LeftBorder() { Size = 24, Space = 1, Color = "FF0000" };
-                    //RightBorder rb = new RightBorder() { Size = 24, Space = 1, Color = "FF0000" };
-                    //pbdr.AppendChild(tb);
-                    //pbdr.AppendChild(bb);
-                    //pbdr.AppendChild(lb);
-                    //pbdr.AppendChild(rb);
-                    //ppr.AppendChild(pbdr);
+                    body.AppendChild(para);
+                    wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                    //para.AppendChild(ppr);
-                    //ApplyStyleToParagraph(wordprocessingDocument, "code", "code", para);
+                    wordprocessingDocument.Close();
                 }
 
                 else
@@ -380,6 +392,7 @@ namespace convert
                         {
                             run.AppendChild(new Text(txtPatentlist[begintag][0] + " "));
                         }
+
                         foreach (string tag in txtPatentlist[begintag])
                         {
                             switch (tag)
