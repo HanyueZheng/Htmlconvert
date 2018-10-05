@@ -18,7 +18,7 @@ namespace convert
         static void Main(string[] args)
         {
             string path = "C:/Users/12773/Desktop/case.html";
-            Program.ParseHtml(path);
+            Program.ParseHtml(/*path*/);
             ProcessTranslate();
 
             string document = @"C:\Users\12773\Desktop\demo.docx";
@@ -77,18 +77,18 @@ namespace convert
             doc.Close();
         }
 
-        public static void ParseHtml(string filepath)
+        public static void ParseHtml(/*string filepath*/)
         {
             HtmlDocument doc = new HtmlDocument();
-            doc.Load(filepath);
+            //doc.Load(filepath);
             string document = @"C:\Users\12773\Desktop\demo.docx";
             var html =
         @"<body>
 <h1><b>bold</b> heading</h1>
-<p>This is <u>italic</u> paragraph</p>
+<p>This is <br>italic paragraph</p>
 <img src='C:\Users\12773\Desktop\aa.png'/>
 <table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table>
-<ul><li>List1</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul>
+<ul><li>List1<br>enterlist</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul>
 <pre>
 <code class='lang - javascript'>
 function test() 
@@ -99,7 +99,7 @@ function test()
 </pre>
 </body>";
 
-            
+            doc.LoadHtml(html);
             HtmlNode node = doc.DocumentNode.SelectSingleNode("//body");
             Node n1 = new Node();
             n1.setNodename("body");
@@ -119,7 +119,7 @@ function test()
                     tnode.setNodename(nodename);
                     tnode.setParent(pnode);
                     pnode.AddChild(tnode);
-                    if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre" || nodename == "br"))
+                    if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
                     {
                         Node teminal = new Node();
                         teminal.setNodename("\n");
@@ -228,18 +228,18 @@ function test()
                     InsertAPicture(document, txtPatentlist[begintag][1]);
                 }
 
-                else if (txtPatentlist[begintag][0] == "br")
-                {
-                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
-                    Paragraph para = new Paragraph();
-                    Run run = para.AppendChild(new Run());
-                    run.Append(new Break());
-                    body.AppendChild(para);
-                    wordprocessingDocument.MainDocumentPart.Document.Save();
+                //else if (txtPatentlist[begintag][0] == "br")
+                //{
+                //    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                //    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                //    Paragraph para = new Paragraph();
+                //    Run run = para.AppendChild(new Run());
+                //    run.Append(new Break());
+                //    body.AppendChild(para);
+                //    wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                    wordprocessingDocument.Close();
-                }
+                //    wordprocessingDocument.Close();
+                //}
 
                 else if (txtPatentlist[begintag].Contains("table"))
                 {
@@ -253,9 +253,17 @@ function test()
                 {
                     WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
                     Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
-
+                    
                     for (; begintag < endtag; begintag++)
                     {
+                        if (txtPatentlist[begintag][0] == "br")
+                        {
+                            Paragraph para = new Paragraph();
+                            Run run = para.AppendChild(new Run());
+                            run.Append(new Break());
+                            body.AppendChild(para);
+                            begintag++;
+                        }
                         int level = -1;
                         string content = txtPatentlist[begintag][0];
                         foreach (string s in txtPatentlist[begintag])
@@ -317,6 +325,11 @@ function test()
                     for (; begintag < endtag; begintag++)
                     {
                         Run run = para.AppendChild(new Run());
+                        if (txtPatentlist[begintag][0] == "br")
+                        {
+                            run.Append(new Break());
+                            begintag++;
+                        }
                         if (txtPatentlist[begintag][0] != "endtag")
                         {
                             Text t = new Text(txtPatentlist[begintag][0]);
