@@ -18,7 +18,7 @@ namespace convert
         static void Main(string[] args)
         {
             string path = "C:/Users/12773/Desktop/case.html";
-            Program.ParseHtml(/*path*/);
+            Program.ParseHtml(path);
             ProcessTranslate();
 
             string document = @"C:\Users\12773\Desktop\demo.docx";
@@ -77,10 +77,10 @@ namespace convert
             doc.Close();
         }
 
-        public static void ParseHtml(/*string filepath*/)
+        public static void ParseHtml(string filepath)
         {
             HtmlDocument doc = new HtmlDocument();
-            //doc.Load(filepath);
+            doc.Load(filepath);
             string document = @"C:\Users\12773\Desktop\demo.docx";
             var html =
         @"<body>
@@ -99,7 +99,7 @@ function test()
 </pre>
 </body>";
 
-            doc.LoadHtml(html);
+            //doc.LoadHtml(html);
             HtmlNode node = doc.DocumentNode.SelectSingleNode("//body");
             Node n1 = new Node();
             n1.setNodename("body");
@@ -253,16 +253,14 @@ function test()
                 {
                     WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
                     Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    bool isenter = false;
                     
                     for (; begintag < endtag; begintag++)
                     {
                         if (txtPatentlist[begintag][0] == "br")
                         {
-                            Paragraph para = new Paragraph();
-                            Run run = para.AppendChild(new Run());
-                            run.Append(new Break());
-                            body.AppendChild(para);
                             begintag++;
+                            isenter = true;
                         }
                         int level = -1;
                         string content = txtPatentlist[begintag][0];
@@ -271,8 +269,9 @@ function test()
                             if (s == "ul")
                                 level += 1;
                         }
-                        AppendListItem(body, content, level, listcount, 0);
+                        AppendListItem(body, content, level, listcount, 0, isenter);
                         wordprocessingDocument.MainDocumentPart.Document.Save();
+                        isenter = false;
                     }
                     listcount++;
                     wordprocessingDocument.Close();                                 
@@ -630,13 +629,16 @@ function test()
             wordprocessingDocument.Close();
         }
 
-        public static void AppendListItem(Body body, string p, int level, int listcount, int i)
+        public static void AppendListItem(Body body, string p, int level, int listcount, int i, bool isenter)
         {
             Paragraph paragraph1 = new Paragraph();
+            Paragraph paragraph2 = new Paragraph();
             ParagraphProperties pp1 = new ParagraphProperties();
+            ParagraphProperties pp2 = new ParagraphProperties();
             ParagraphStyleId psi = new ParagraphStyleId() { Val = "ListParagraph" };
+            int indent = 420 * (level + 1);
+            Indentation indentation2 = new Indentation() { Left = indent .ToString() };
 
-            
             NumberingProperties numberingProperties1 = new NumberingProperties();
             NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() { Val = level };
             NumberingId numberingId1 = new NumberingId() { Val = 4 };
@@ -649,14 +651,32 @@ function test()
             pp1.Append(numberingProperties1);
             pp1.Append(indentation1);
 
+            BookmarkStart bookmarkStart1 = new BookmarkStart() { Name = "_GoBack", Id = "0" };
+            BookmarkEnd bookmarkEnd1 = new BookmarkEnd() { Id = "0" };
+
+            pp2.Append(indentation2);
+
             Run run = new Run();
             Text text = new Text();
             text.Text = p;
-            run.Append(text);
-            paragraph1.Append(pp1);
-            paragraph1.Append(run);
-            body.Append(paragraph1);
 
+            run.Append(text);
+             
+            if (isenter)
+            {
+                paragraph2.Append(pp2);
+                paragraph2.Append(run);
+                paragraph2.Append(bookmarkStart1);
+                paragraph2.Append(bookmarkEnd1);
+                body.Append(paragraph2);
+            }
+            else
+            {
+                paragraph1.Append(pp1);
+                paragraph1.Append(run);
+                body.Append(paragraph1);
+            }           
+            
         }
     }
 }
