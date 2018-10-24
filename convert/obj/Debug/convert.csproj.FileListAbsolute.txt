@@ -29,3 +29,14 @@ C:\Users\12773\Source\Repos\Htmlconvert\convert\bin\Debug\HtmlAgilityPack.xml
 C:\Users\12773\Source\Repos\Htmlconvert\convert\obj\Debug\convert.csprojResolveAssemblyReference.cache
 C:\Users\12773\Source\Repos\Htmlconvert\convert\obj\Debug\convert.Properties.Resources.resources
 C:\Users\12773\Source\Repos\Htmlconvert\convert\obj\Debug\convert.csproj.GenerateResource.Cache
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\convert.exe
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\convert.pdb
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\DocumentFormat.OpenXml.dll
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\HtmlAgilityPack.dll
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\WindowsBase.dll
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\DocumentFormat.OpenXml.xml
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\HtmlAgilityPack.pdb
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\bin\Debug\HtmlAgilityPack.xml
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\obj\Debug\convert.csprojResolveAssemblyReference.cache
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\obj\Debug\convert.Properties.Resources.resources
+C:\Users\Hanyue Zheng\Source\Repos\Htmlconvert\convert\obj\Debug\convert.csproj.GenerateResource.Cache

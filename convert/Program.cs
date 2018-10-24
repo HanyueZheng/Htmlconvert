@@ -17,11 +17,11 @@ namespace convert
         static List<List<string>> txtPatentlist = new List<List<string>>();
         static void Main(string[] args)
         {
-            string path = "C:/Users/12773/Desktop/case.html";
+            string path = "C:/Users/Hanyue Zheng/Desktop/case.html";
             Program.ParseHtml(path);
             ProcessTranslate();
 
-            string document = @"C:\Users\12773\Desktop\demo.docx";
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
         }
 
         public static void BookMark(string filepath)
@@ -81,7 +81,7 @@ namespace convert
         {
             HtmlDocument doc = new HtmlDocument();
             doc.Load(filepath);
-            string document = @"C:\Users\12773\Desktop\demo.docx";
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
             var html =
         @"<body>
 <h1><b>bold</b> heading</h1>
@@ -143,7 +143,7 @@ function test()
 
         public static void HtmlConvert(Node n1)
         {
-            string document = @"C:\Users\12773\Desktop\demo.docx";
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
             string nodename = n1.getNodename();
             List<Node> nlist = n1.getChilds();
             int count = nlist.Count;
@@ -215,7 +215,7 @@ function test()
 
         public static void ProcessTranslate()
         {
-            string document = @"C:\Users\12773\Desktop\demo.docx";
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
             int begintag = 0;
             int endtag = 0;
             int listcount = 1;
@@ -252,7 +252,32 @@ function test()
                 else if (txtPatentlist[begintag].Contains("ul"))
                 {
                     WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+                    Body body = m.Document.Body;
+
+                    NumberingDefinitionsPart numberingPart = m.NumberingDefinitionsPart;
+  
+
+                    Numbering element =
+                      new Numbering(
+                        new AbstractNum(
+                          new Level(
+                            new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                            new LevelText() { Val = "■" }
+                          )
+                          { LevelIndex = 0 }
+                        )
+                        { AbstractNumberId = 1 },
+                        new NumberingInstance(
+                          new AbstractNumId() { Val = 1 }
+                        )
+                        { NumberID = 1 });
+
+                    element.Save(numberingPart);
+
+
+
+
                     bool isenter = false;
                     
                     for (; begintag < endtag; begintag++)
@@ -315,6 +340,11 @@ function test()
                     wordprocessingDocument.Close();
                 }
 
+                else if (txtPatentlist[begintag].Contains("h1"))
+                {
+                    SetTitle(begintag, endtag, 1.ToString(), document);
+                }
+
                 else
                 {
                     WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
@@ -362,6 +392,27 @@ function test()
                 begintag = endtag + 1;
             }
           
+        }
+
+        public static void SetTitle(int begintag, int endtag, string val, string document)
+        {
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            Paragraph p = new Paragraph();
+            ParagraphProperties ppr = new ParagraphProperties();
+            ParagraphStyleId stid = new ParagraphStyleId() { Val = val };
+            ppr.Append(stid);
+            p.Append(ppr);
+
+            for (; begintag < endtag; begintag++)
+            {
+                Run run = p.AppendChild(new Run(new Text(txtPatentlist[begintag][0])));
+            }
+
+            body.Append(p);
+            wordprocessingDocument.MainDocumentPart.Document.Save();
+
+            wordprocessingDocument.Close();
         }
 
         public static int GetInterval(int i)
@@ -594,10 +645,17 @@ function test()
 
             //Table properties
             TableProperties tableProp = new TableProperties();
-            TableStyle tableStyle = new TableStyle() { Val = "a3" };
+            TableBorders tbb = new TableBorders( 
+                new TopBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new BottomBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new LeftBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new RightBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new InsideHorizontalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new InsideVerticalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7}
+            );
             TableWidth tableWidth = new TableWidth() { Width = "2300", Type = TableWidthUnitValues.Pct };
             
-            tableProp.Append(tableStyle, tableWidth);
+            tableProp.Append( tableWidth, tbb);
             tb.AppendChild(tableProp);
 
             //Table column
@@ -631,28 +689,42 @@ function test()
 
         public static void AppendListItem(Body body, string p, int level, int listcount, int i, bool isenter)
         {
+            Numbering element =
+  new Numbering(
+    new AbstractNum(
+      new Level(
+        new NumberingFormat() { Val = NumberFormatValues.Bullet },
+        new LevelText() { Val = "·" }
+      )
+      { LevelIndex = 0 }
+    )
+    { AbstractNumberId = 1 },
+    new NumberingInstance(
+      new AbstractNumId() { Val = 1 }
+    )
+    { NumberID = 1 });
+
+           
+
             Paragraph paragraph1 = new Paragraph();
             Paragraph paragraph2 = new Paragraph();
             ParagraphProperties pp1 = new ParagraphProperties();
             ParagraphProperties pp2 = new ParagraphProperties();
-            ParagraphStyleId psi = new ParagraphStyleId() { Val = "ListParagraph" };
+            
             int indent = 420 * (level + 1);
             Indentation indentation2 = new Indentation() { Left = indent .ToString() };
 
             NumberingProperties numberingProperties1 = new NumberingProperties();
             NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() { Val = level };
-            NumberingId numberingId1 = new NumberingId() { Val = 4 };
+            NumberingId numberingId1 = new NumberingId() { Val = 1 };
 
             numberingProperties1.Append(numberingLevelReference1);
             numberingProperties1.Append(numberingId1);
             Indentation indentation1 = new Indentation() { FirstLineChars = i };
 
-            pp1.Append(psi);
+            
             pp1.Append(numberingProperties1);
             pp1.Append(indentation1);
-
-            BookmarkStart bookmarkStart1 = new BookmarkStart() { Name = "_GoBack", Id = "0" };
-            BookmarkEnd bookmarkEnd1 = new BookmarkEnd() { Id = "0" };
 
             pp2.Append(indentation2);
 
@@ -666,8 +738,6 @@ function test()
             {
                 paragraph2.Append(pp2);
                 paragraph2.Append(run);
-                paragraph2.Append(bookmarkStart1);
-                paragraph2.Append(bookmarkEnd1);
                 body.Append(paragraph2);
             }
             else
