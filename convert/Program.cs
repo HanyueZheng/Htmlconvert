@@ -256,22 +256,42 @@ function test()
                     Body body = m.Document.Body;
 
                     NumberingDefinitionsPart numberingPart = m.NumberingDefinitionsPart;
-  
+                    if (numberingPart == null)
+                    {
+                        numberingPart = m.AddNewPart<NumberingDefinitionsPart>();
+                    }
 
-                    Numbering element =
+                        Numbering element =
                       new Numbering(
                         new AbstractNum(
+                          new MultiLevelType() { Val = MultiLevelValues.Multilevel },
                           new Level(
+                            
+                            new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                            new LevelText() { Val = "●" }
+                          )
+                          { LevelIndex = 0 },
+
+                          new Level(
+
+                            new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                            new LevelText() { Val = "o" }
+                          )
+                          { LevelIndex = 1 },
+
+                          new Level(
+
                             new NumberingFormat() { Val = NumberFormatValues.Bullet },
                             new LevelText() { Val = "■" }
                           )
-                          { LevelIndex = 0 }
+                          { LevelIndex = 2}
                         )
                         { AbstractNumberId = 1 },
                         new NumberingInstance(
                           new AbstractNumId() { Val = 1 }
                         )
-                        { NumberID = 1 });
+                        { NumberID = 1 }
+                        );
 
                     element.Save(numberingPart);
 
@@ -294,7 +314,7 @@ function test()
                             if (s == "ul")
                                 level += 1;
                         }
-                        AppendListItem(body, content, level, listcount, 0, isenter);
+                        AppendListItem(wordprocessingDocument, content, level, listcount, 0, isenter);
                         wordprocessingDocument.MainDocumentPart.Document.Save();
                         isenter = false;
                     }
@@ -398,21 +418,50 @@ function test()
         {
             WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
             Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
-            Paragraph p = new Paragraph();
-            ParagraphProperties ppr = new ParagraphProperties();
-            ParagraphStyleId stid = new ParagraphStyleId() { Val = val };
-            ppr.Append(stid);
-            p.Append(ppr);
 
-            for (; begintag < endtag; begintag++)
+            StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+            if (part != null)
             {
-                Run run = p.AppendChild(new Run(new Text(txtPatentlist[begintag][0])));
+                Style style = new Style()
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "Heading1",
+                    BasedOn = new BasedOn() { Val = "Normal" },
+                    
+                };
+                StyleName styleName1 = new StyleName() { Val = "heading 1" };
+                style.Append(styleName1);
+                style.Append(new PrimaryStyle());
+                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+                styleRunProperties1.Append(new Bold());
+
+                styleRunProperties1.Append(new RunFonts()
+                {
+                    ComplexScriptTheme = ThemeFontValues.MajorBidi,
+                    HighAnsiTheme = ThemeFontValues.MajorHighAnsi,
+                    EastAsiaTheme = ThemeFontValues.MajorEastAsia,
+                    AsciiTheme = ThemeFontValues.MajorAscii
+                });
+                styleRunProperties1.Append(new FontSize() { Val = "48" });
+                style.Append(styleRunProperties1);
+                part.Styles.Append(style);
+
+                Paragraph p = new Paragraph();
+                ParagraphProperties ppr = new ParagraphProperties();
+                ParagraphStyleId stid = new ParagraphStyleId() { Val = "Heading1" };
+                ppr.Append(stid);
+                p.Append(ppr);
+
+                for (; begintag < endtag; begintag++)
+                {
+                    Run run = p.AppendChild(new Run(new Text(txtPatentlist[begintag][0])));
+                }
+
+                body.Append(p);
+                wordprocessingDocument.MainDocumentPart.Document.Save();
+
+                wordprocessingDocument.Close();
             }
-
-            body.Append(p);
-            wordprocessingDocument.MainDocumentPart.Document.Save();
-
-            wordprocessingDocument.Close();
         }
 
         public static int GetInterval(int i)
@@ -687,24 +736,12 @@ function test()
             wordprocessingDocument.Close();
         }
 
-        public static void AppendListItem(Body body, string p, int level, int listcount, int i, bool isenter)
+        public static void AppendListItem(WordprocessingDocument wordprocessingDocument, string p, int level, int listcount, int i, bool isenter)
         {
-            Numbering element =
-  new Numbering(
-    new AbstractNum(
-      new Level(
-        new NumberingFormat() { Val = NumberFormatValues.Bullet },
-        new LevelText() { Val = "·" }
-      )
-      { LevelIndex = 0 }
-    )
-    { AbstractNumberId = 1 },
-    new NumberingInstance(
-      new AbstractNumId() { Val = 1 }
-    )
-    { NumberID = 1 });
+            
+            MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+            Body body = m.Document.Body;
 
-           
 
             Paragraph paragraph1 = new Paragraph();
             Paragraph paragraph2 = new Paragraph();
@@ -716,11 +753,13 @@ function test()
 
             NumberingProperties numberingProperties1 = new NumberingProperties();
             NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() { Val = level };
+            
             NumberingId numberingId1 = new NumberingId() { Val = 1 };
-
+           
             numberingProperties1.Append(numberingLevelReference1);
             numberingProperties1.Append(numberingId1);
-            Indentation indentation1 = new Indentation() { FirstLineChars = i };
+            int indent1 = 420 * level;
+            Indentation indentation1 = new Indentation() { Left = indent1.ToString() };
 
             
             pp1.Append(numberingProperties1);
@@ -745,7 +784,8 @@ function test()
                 paragraph1.Append(pp1);
                 paragraph1.Append(run);
                 body.Append(paragraph1);
-            }           
+            }
+            
             
         }
     }
