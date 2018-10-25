@@ -8,76 +8,544 @@ using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using System.Collections.Generic;
 using System.Linq;
 using HtmlAgilityPack;
-
+using System;
 
 namespace convert
 {
     class Program
     {
+        static List<List<string>> txtPatentlist = new List<List<string>>();
         static void Main(string[] args)
         {
-            string path = "C:/Users/12773/Desktop/DemoHtml.html";
-            Program.ParseHtml();
-            string document = @"C:\Users\12773\Desktop\demo.docx";
-            string fileName = @"C:\Users\12773\Desktop\aa.png";
-            //string strTxt = "Append text in body - OpenAndAddTextToWordDocument";
-            //CreateTable(document);
-            //OpenAndAddTextToWordDocument(document, strTxt);
-            //OpenAndAddTextToWordDocument(document, strTxt);
-            //OpenAndAddTextToWordDocument(document, strTxt);
-            InsertAPicture(document, fileName);
-            //BookMark(document);
-            //SetTitle(document);
+            string path = "C:/Users/Hanyue Zheng/Desktop/case.html";
+            Program.ParseHtml(path);
+            ProcessTranslate();
 
-            //using (WordprocessingDocument doc =
-            //    WordprocessingDocument.Open(document, true))
-            //{
-            //    // Get the Styles part for this document.
-            //    StyleDefinitionsPart part =
-            //        doc.MainDocumentPart.StyleDefinitionsPart;
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+        }
 
-            //    // If the Styles part does not exist, add it and then add the style.
-            //    if (part == null)
-            //    {
-            //        part = AddStylesPartToPackage(doc);
-            //    }
+        public static void BookMark(string filepath)
+        {
+            WordprocessingDocument doc =
+                WordprocessingDocument.Open(filepath, true);
+            Body body = doc.MainDocumentPart.Document.Body;
+            Paragraph paragraph1 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().First();
+            BookmarkStart bookmarkStart = new BookmarkStart() { Name = "p1", Id = "1" };
+            BookmarkEnd bookmarkEnd = new BookmarkEnd() { Id = "1" };
+            body.InsertBefore<BookmarkStart>(bookmarkStart, paragraph1);
+            body.InsertAfter<BookmarkEnd>(bookmarkEnd, paragraph1);
 
-            //    // Set up a variable to hold the style ID.
-            //    string parastyleid = "OverdueAmountPara";
+            Paragraph paragraph3 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().ElementAt(2);
+            Run run2 = new Run() { RsidRunAddition = "009B0519" };
+            FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.Begin };
+            run2.Append(fieldChar1);
+            Run run3 = new Run() { RsidRunAddition = "009B0519" };
+            FieldCode fieldCode1 = new FieldCode() { Space = SpaceProcessingModeValues.Preserve };
+            fieldCode1.Text = " REF p1 \\h "; //Link to bookmark p1
+            run3.Append(fieldCode1);
+            Run run4 = new Run() { RsidRunAddition = "009B0519" };
+            FieldChar fieldChar2 = new FieldChar() { FieldCharType = FieldCharValues.Separate };
+            run4.Append(fieldChar2);
+            Run run5 = new Run() { RsidRunAddition = "009B0519" };
+            Text text2 = new Text();
+            text2.Text = "Link To Paragraph1";
+            run5.Append(text2);
+            Run run6 = new Run();
+            FieldChar fieldChar3 = new FieldChar() { FieldCharType = FieldCharValues.End };
+            run6.Append(fieldChar3);
+            paragraph3.Append(run2);
+            paragraph3.Append(run3);
+            paragraph3.Append(run4);
+            paragraph3.Append(run5);
+            paragraph3.Append(run6);
 
-            //    // Create and add a paragraph style to the specified styles part 
-            //    // with the specified style ID, style name and aliases.
-            //    CreateAndAddParagraphStyle(part,
-            //        parastyleid,
-            //        "Overdue Amount Para",
-            //        "Late Due, Late Amount");
+            string parastyleid = "OverdueAmountPara";
+            if (paragraph3.Elements<ParagraphProperties>().Count() == 0)
+            {
+                paragraph3.PrependChild<ParagraphProperties>(new ParagraphProperties());
+            }
 
-            //    // Add a paragraph with a run and some text.
-            //    Paragraph p =
-            //        new Paragraph(
-            //            new Run(
-            //                new Text("This is some text in a run in a paragraph.")));
+            // Get a reference to the ParagraphProperties object.
+            ParagraphProperties pPr = paragraph3.ParagraphProperties;
 
-            //    // Add the paragraph as a child element of the w:body element.
-            //    doc.MainDocumentPart.Document.Body.AppendChild(p);
-            //    // If the paragraph has no ParagraphProperties object, create one.
-            //    if (p.Elements<ParagraphProperties>().Count() == 0)
-            //    {
-            //        p.PrependChild<ParagraphProperties>(new ParagraphProperties());
-            //    }
+            // If a ParagraphStyleId object doesn't exist, create one.
+            if (pPr.ParagraphStyleId == null)
+                pPr.ParagraphStyleId = new ParagraphStyleId();
 
-            //    // Get a reference to the ParagraphProperties object.
-            //    ParagraphProperties pPr = p.ParagraphProperties;
+            // Set the style of the paragraph.
+            pPr.ParagraphStyleId.Val = parastyleid;
+            doc.Close();
+        }
 
-            //    // If a ParagraphStyleId object doesn't exist, create one.
-            //    if (pPr.ParagraphStyleId == null)
-            //        pPr.ParagraphStyleId = new ParagraphStyleId();
+        public static void ParseHtml(string filepath)
+        {
+            HtmlDocument doc = new HtmlDocument();
+            doc.Load(filepath);
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+            var html =
+        @"<body>
+<h1><b>bold</b> heading</h1>
+<p>This is <br>italic paragraph</p>
+<img src='C:\Users\12773\Desktop\aa.png'/>
+<table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table>
+<ul><li>List1<br>enterlist</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul>
+<pre>
+<code class='lang - javascript'>
+function test() 
+{
+    console.log('Hello world!');
+}
+</code>
+</pre>
+</body>";
 
-            //    // Set the style of the paragraph.
-            //    pPr.ParagraphStyleId.Val = parastyleid;
-            //}
+            //doc.LoadHtml(html);
+            HtmlNode node = doc.DocumentNode.SelectSingleNode("//body");
+            Node n1 = new Node();
+            n1.setNodename("body");
+            traverse(node, n1);
+            HtmlConvert(n1);
+        }
+
+        public static void traverse(HtmlNode node, Node pnode)
+        {
+            for (int i = 0; i < node.ChildNodes.Count(); i++)
+            {
+                HtmlNode n = node.ChildNodes[i];
+                if (n.InnerHtml != "\r\n")
+                {
+                    Node tnode = new Node();
+                    var nodename = n.Name;
+                    tnode.setNodename(nodename);
+                    tnode.setParent(pnode);
+                    pnode.AddChild(tnode);
+                    if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
+                    {
+                        Node teminal = new Node();
+                        teminal.setNodename("\n");
+                        pnode.AddChild(teminal);
+                       
+                    }
+                    if (nodename == "img")
+                    {
+                        tnode.setSrc(n.Attributes["src"].Value);
+                        
+                    }
+                    if (nodename == "#text")
+                    {
+                        tnode.setText(n.InnerHtml);                        
+                    }
+                    else { traverse(n, tnode); }
+                }
+                
+            }
+        }
+
+        public static void HtmlConvert(Node n1)
+        {
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+            string nodename = n1.getNodename();
+            List<Node> nlist = n1.getChilds();
+            int count = nlist.Count;
+            switch (nodename)
+            {
+                case "br":
+                    List<string> brlist = new List<string>();
+                    brlist.Add("br");
+                    txtPatentlist.Add(brlist);
+                    break;
+                case "body":
+                    for (int i = 0; i < count; i++)
+                        HtmlConvert(nlist[i]);
+                    break;
+
+                case "h1":
+                    for (int i = 0; i < count; i++)
+                        HtmlConvert(nlist[i]);
+                    break;
+
+                case "b":
+                    for (int i = 0; i < count; i++)
+                        HtmlConvert(nlist[i]);
+                    break;
+
+                case "#text":
+                    string txt = n1.getText();
+                    GetTxtParentList(n1);
+                    break;
+
+                case "img":
+                    string src = n1.getSrc();
+                    List<string> imglist = new List<string>();
+                    imglist.Add("img");
+                    imglist.Add(src);
+                    txtPatentlist.Add(imglist);
+                    break;
+
+                case "\n":
+                    List<string> taglist = new List<string>();
+                    taglist.Add("endtag");
+                    txtPatentlist.Add(taglist);
+                    break;
+
+                default:
+                    for (int i = 0; i < count; i++)
+                        HtmlConvert(nlist[i]);
+                    break;
+            }            
+        }
+
+        public static void GetTxtParentList(Node n)
+        {
+            List<string> plist = new List<string>();
+            plist.Add(n.getText());
+            while (n.getParent().getNodename() != "body")
+            {
+                plist.Add(n.getParent().getNodename());
+                if (n.getParent().getNodename() == "tr")
+                {
+                    int colcount = n.getParent().getChilds().Count();
+                    plist.Add(colcount.ToString());
+                }
+                
+                n = n.getParent();
+            }
+            txtPatentlist.Add(plist);
+        }
+
+        public static void ProcessTranslate()
+        {
+            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+            int begintag = 0;
+            int endtag = 0;
+            int listcount = 1;
+            while (begintag < txtPatentlist.Count())
+            {
+                endtag = GetInterval(begintag);
+
+                if (txtPatentlist[begintag][0] == "img")
+                {
+                    InsertAPicture(document, txtPatentlist[begintag][1]);
+                }
+
+                //else if (txtPatentlist[begintag][0] == "br")
+                //{
+                //    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                //    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                //    Paragraph para = new Paragraph();
+                //    Run run = para.AppendChild(new Run());
+                //    run.Append(new Break());
+                //    body.AppendChild(para);
+                //    wordprocessingDocument.MainDocumentPart.Document.Save();
+
+                //    wordprocessingDocument.Close();
+                //}
+
+                else if (txtPatentlist[begintag].Contains("table"))
+                {
+                    int trindex = txtPatentlist[begintag].IndexOf("tr") + 1;
+                    int colcount = Int32.Parse(txtPatentlist[begintag][trindex]);
+                    int rowcount = (endtag - begintag) / colcount;
+                    CreateTable(document, colcount, rowcount, begintag);
+                }
+
+                else if (txtPatentlist[begintag].Contains("ul"))
+                {
+                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+                    Body body = m.Document.Body;
+
+                    NumberingDefinitionsPart numberingPart = m.NumberingDefinitionsPart;
+  
+
+                    Numbering element =
+                      new Numbering(
+                        new AbstractNum(
+                          new Level(
+                            new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                            new LevelText() { Val = "■" }
+                          )
+                          { LevelIndex = 0 }
+                        )
+                        { AbstractNumberId = 1 },
+                        new NumberingInstance(
+                          new AbstractNumId() { Val = 1 }
+                        )
+                        { NumberID = 1 });
+
+                    element.Save(numberingPart);
 
 
+
+
+                    bool isenter = false;
+                    
+                    for (; begintag < endtag; begintag++)
+                    {
+                        if (txtPatentlist[begintag][0] == "br")
+                        {
+                            begintag++;
+                            isenter = true;
+                        }
+                        int level = -1;
+                        string content = txtPatentlist[begintag][0];
+                        foreach (string s in txtPatentlist[begintag])
+                        {
+                            if (s == "ul")
+                                level += 1;
+                        }
+                        AppendListItem(body, content, level, listcount, 0, isenter);
+                        wordprocessingDocument.MainDocumentPart.Document.Save();
+                        isenter = false;
+                    }
+                    listcount++;
+                    wordprocessingDocument.Close();                                 
+                }
+
+                else if (txtPatentlist[begintag].Contains("pre"))
+                {
+                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    Paragraph para = new Paragraph();
+
+                    ParagraphProperties paraProperties = new ParagraphProperties();
+                    ParagraphBorders paraBorders = new ParagraphBorders();
+                    TopBorder top = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    BottomBorder bottom = new BottomBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    LeftBorder left = new LeftBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    RightBorder right = new RightBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)9U, Space = (UInt32Value)5U };
+                    paraBorders.Append(bottom);
+                    paraBorders.Append(top);
+                    paraBorders.Append(left);
+                    paraBorders.Append(right);
+                    paraProperties.Append(paraBorders);
+                    para.Append(paraProperties);
+
+                    Run run = para.AppendChild(new Run());
+                    string t = txtPatentlist[begintag][0] ;
+                    string[] s = t.Split('\n');
+                    foreach (string str in s)
+                    {
+                        if (str.Contains("  "))
+                        {
+                            run.Append(new TabChar());
+                        }
+                        run.AppendChild(new Text(str));
+                        run.Append(new Break());
+                    }
+
+                    body.AppendChild(para);
+                    wordprocessingDocument.MainDocumentPart.Document.Save();
+
+                    wordprocessingDocument.Close();
+                }
+
+                else if (txtPatentlist[begintag].Contains("h1"))
+                {
+                    SetTitle(begintag, endtag, 1.ToString(), document);
+                }
+
+                else
+                {
+                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    Paragraph para = body.AppendChild(new Paragraph());
+
+                    for (; begintag < endtag; begintag++)
+                    {
+                        Run run = para.AppendChild(new Run());
+                        if (txtPatentlist[begintag][0] == "br")
+                        {
+                            run.Append(new Break());
+                            begintag++;
+                        }
+                        if (txtPatentlist[begintag][0] != "endtag")
+                        {
+                            Text t = new Text(txtPatentlist[begintag][0]);
+                            t.Space = t.Space = new EnumValue<SpaceProcessingModeValues>(SpaceProcessingModeValues.Preserve);
+                            
+                            run.AppendChild(t);
+                            
+                        }
+
+                        foreach (string tag in txtPatentlist[begintag])
+                        {
+                            switch (tag)
+                            {
+                                case "b":
+                                    SetBoldFont(run, wordprocessingDocument);
+                                    break;
+                                case "u":
+                                    SetItalic(run, wordprocessingDocument);
+                                    break;
+                                case "strong":
+                                    SetBoldFont(run, wordprocessingDocument);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                    wordprocessingDocument.Close();
+                }
+                                
+                begintag = endtag + 1;
+            }
+          
+        }
+
+        public static void SetTitle(int begintag, int endtag, string val, string document)
+        {
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            Paragraph p = new Paragraph();
+            ParagraphProperties ppr = new ParagraphProperties();
+            ParagraphStyleId stid = new ParagraphStyleId() { Val = val };
+            ppr.Append(stid);
+            p.Append(ppr);
+
+            for (; begintag < endtag; begintag++)
+            {
+                Run run = p.AppendChild(new Run(new Text(txtPatentlist[begintag][0])));
+            }
+
+            body.Append(p);
+            wordprocessingDocument.MainDocumentPart.Document.Save();
+
+            wordprocessingDocument.Close();
+        }
+
+        public static int GetInterval(int i)
+        {
+            int endtag = 0;
+            for (; i < txtPatentlist.Count(); i++)
+            {
+                if (txtPatentlist[i].Contains("endtag"))
+                {
+                    endtag = i;
+                    return endtag;
+                }
+
+            }
+            return endtag;
+        }
+
+        public static void ApplyStyleToParagraph(WordprocessingDocument doc, string styleid, string stylename, Paragraph p)
+        {
+            if (p.Elements<ParagraphProperties>().Count() == 0)
+            {
+                p.PrependChild<ParagraphProperties>(new ParagraphProperties());
+            }
+            ParagraphProperties pPr = p.Elements<ParagraphProperties>().First();
+
+            StyleDefinitionsPart part = doc.MainDocumentPart.StyleDefinitionsPart;
+            if (part == null)
+            {
+                part = AddStylesPartToPackage(doc);
+                AddNewStyle(part, styleid, stylename);
+            }
+            else
+            {
+                // If the style is not in the document, add it.
+                if (IsStyleIdInDocument(doc, styleid) != true)
+                {
+                    // No match on styleid, so let's try style name.
+                    string styleidFromName = GetStyleIdFromStyleName(doc, stylename);
+                    if (styleidFromName == null)
+                    {
+                        AddNewStyle(part, styleid, stylename);
+                    }
+                    else
+                        styleid = styleidFromName;
+                }
+            }
+
+            pPr.ParagraphStyleId = new ParagraphStyleId() { Val = styleid };
+        }
+
+        // Add a StylesDefinitionsPart to the document.  Returns a reference to it.
+        public static StyleDefinitionsPart AddStylesPartToPackage(WordprocessingDocument doc)
+        {
+            StyleDefinitionsPart part;
+            part = doc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
+            Styles root = new Styles();
+            root.Save(part);
+            return part;
+        }
+
+        public static bool IsStyleIdInDocument(WordprocessingDocument doc, string styleid)
+        {
+            // Get access to the Styles element for this document.
+            Styles s = doc.MainDocumentPart.StyleDefinitionsPart.Styles;
+
+            // Check that there are styles and how many.
+            int n = s.Elements<Style>().Count();
+            if (n == 0)
+                return false;
+
+            // Look for a match on styleid.
+            Style style = s.Elements<Style>()
+                .Where(st => (st.StyleId == styleid) && (st.Type == StyleValues.Paragraph))
+                .FirstOrDefault();
+            if (style == null)
+                return false;
+
+            return true;
+        }
+
+        public static string GetStyleIdFromStyleName(WordprocessingDocument doc, string styleName)
+        {
+            StyleDefinitionsPart stylePart = doc.MainDocumentPart.StyleDefinitionsPart;
+            string styleId = stylePart.Styles.Descendants<StyleName>()
+                .Where(s => s.Val.Value.Equals(styleName) &&
+                    (((Style)s.Parent).Type == StyleValues.Paragraph))
+                .Select(n => ((Style)n.Parent).StyleId).FirstOrDefault();
+            return styleId;
+        }
+
+        public static void AddNewStyle(StyleDefinitionsPart styleDefinitionsPart, string styleid, string stylename)
+        {
+            Styles styles = styleDefinitionsPart.Styles;
+            Style style = new Style() {
+                Type = StyleValues.Paragraph,
+                StyleId = styleid,
+                CustomStyle = true
+            };
+            StyleName styname = new StyleName() { Val = stylename };
+            BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+            style.Append(styname);
+            style.Append(basedOn1);
+
+        }
+
+        public static void SetBoldFont(Run r, WordprocessingDocument wordprocessingDocument)
+        {           
+            RunProperties rPr = new RunProperties();
+            Bold bd = new Bold();
+            rPr.AppendChild(bd);
+
+            r.PrependChild<RunProperties>(rPr);
+            wordprocessingDocument.MainDocumentPart.Document.Save();
+        }
+
+        public static void SetItalic(Run r, WordprocessingDocument wordprocessingDocument)
+        {
+            RunProperties rPr = new RunProperties();
+            Italic it = new Italic();
+            rPr.AppendChild(it);
+
+            r.PrependChild<RunProperties>(rPr);
+            wordprocessingDocument.MainDocumentPart.Document.Save();
+        }
+
+        public static void SetUnderline(Run r, WordprocessingDocument wordprocessingDocument)
+        {
+            RunProperties rPr = new RunProperties();
+            Underline ul = new Underline();
+            rPr.AppendChild(ul);
+
+            r.PrependChild<RunProperties>(rPr);
+            wordprocessingDocument.MainDocumentPart.Document.Save();             
         }
 
         public static void InsertAPicture(string document, string fileName)
@@ -148,7 +616,7 @@ namespace convert
                                      new PIC.ShapeProperties(
                                          new A.Transform2D(
                                              new A.Offset() { X = 0L, Y = 0L },
-                                             new A.Extents() { Cx = 990000L, Cy = 792000L }),
+                                             new A.Extents() { Cx = 99000000L, Cy = 79200000L }),
                                          new A.PresetGeometry(
                                              new A.AdjustValueList()
                                          )
@@ -168,384 +636,117 @@ namespace convert
             wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
         }
 
-        // Insert a table into a word processing document.
-        public static void CreateTable(string fileName)
+        public static void CreateTable(string fileName, int colcount, int rowcount, int begintag)
         {
-            // Use the file name and path passed in as an argument 
-            // to open an existing Word 2007 document.
-
-            using (WordprocessingDocument doc
-                = WordprocessingDocument.Open(fileName, true))
-            {
-                // Create an empty table.
-                Table table = new Table();
-
-                // Create a TableProperties object and specify its border information.
-                TableProperties tblProp = new TableProperties(
-                    new TableBorders(
-                        new TopBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new BottomBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new LeftBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new RightBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new InsideHorizontalBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        },
-                        new InsideVerticalBorder()
-                        {
-                            Val =
-                            new EnumValue<BorderValues>(BorderValues.BasicThinLines),
-                            Size = 10
-                        }
-                    )
-                );
-
-                // Append the TableProperties object to the empty table.
-                table.AppendChild<TableProperties>(tblProp);
-
-                // Create a row.
-                TableRow tr = new TableRow();
-
-                // Create a cell.
-                TableCell tc1 = new TableCell();
-
-                // Specify the width property of the table cell.
-                tc1.Append(new TableCellProperties(
-                    new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" }));
-
-                // Specify the table cell content.
-                tc1.Append(new Paragraph(new Run(new Text("some text1"))));
-
-                // Append the table cell to the table row.
-                tr.Append(tc1);
-
-                // Create a second table cell by copying the OuterXml value of the first table cell.
-                TableCell tc2 = new TableCell(tc1.OuterXml);
-
-                // Append the table cell to the table row.
-                tr.Append(tc2);
-
-                // Append the table row to the table.
-                table.Append(tr);
-
-                // Append the table to the document.
-                doc.MainDocumentPart.Document.Body.Append(table);
-            }
-        }
-
-        
-        public static void SetTitle(string filepath)
-        {
-            WordprocessingDocument wordDocument = WordprocessingDocument.Open(filepath, true);
-
-            // Add a main document part. 
-            // Create the document structure and add some text.
-            Body body = wordDocument.MainDocumentPart.Document.Body;
-            Paragraph para = body.AppendChild(new Paragraph());
-
-            Run run = para.AppendChild(new Run());
-            run.AppendChild(new Text("Executive Summary"));
-            if (para.Elements<ParagraphProperties>().Count() == 0)
-                para.PrependChild<ParagraphProperties>(new ParagraphProperties());
-
-            // Get the ParagraphProperties element of the paragraph.
-            ParagraphProperties pPr = para.Elements<ParagraphProperties>().First();
-
-            // Set the value of ParagraphStyleId to "Heading3".
-            pPr.ParagraphStyleId = new ParagraphStyleId() { Val = "Heading1" };
-            wordDocument.Close();
-
-        }
-
-        // Create a new paragraph style with the specified style ID, primary style name, and aliases and 
-        // add it to the specified style definitions part.
-        public static void CreateAndAddParagraphStyle(StyleDefinitionsPart styleDefinitionsPart,
-            string styleid, string stylename, string aliases = "")
-        {
-            // Access the root element of the styles part.
-            Styles styles = styleDefinitionsPart.Styles;
-            if (styles == null)
-            {
-                styleDefinitionsPart.Styles = new Styles();
-                styleDefinitionsPart.Styles.Save();
-            }
-
-            // Create a new paragraph style element and specify some of the attributes.
-            Style style = new Style()
-            {
-                Type = StyleValues.Paragraph,
-                StyleId = styleid,
-                CustomStyle = true,
-                Default = false
-            };
-
-            // Create and add the child elements (properties of the style).
-            Aliases aliases1 = new Aliases() { Val = aliases };
-            AutoRedefine autoredefine1 = new AutoRedefine() { Val = OnOffOnlyValues.Off };
-            BasedOn basedon1 = new BasedOn() { Val = "Normal" };
-            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "OverdueAmountChar" };
-            Locked locked1 = new Locked() { Val = OnOffOnlyValues.Off };
-            PrimaryStyle primarystyle1 = new PrimaryStyle() { Val = OnOffOnlyValues.On };
-            StyleHidden stylehidden1 = new StyleHidden() { Val = OnOffOnlyValues.Off };
-            SemiHidden semihidden1 = new SemiHidden() { Val = OnOffOnlyValues.Off };
-            StyleName styleName1 = new StyleName() { Val = stylename };
-            NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-            UIPriority uipriority1 = new UIPriority() { Val = 1 };
-            UnhideWhenUsed unhidewhenused1 = new UnhideWhenUsed() { Val = OnOffOnlyValues.On };
-            if (aliases != "")
-                style.Append(aliases1);
-            style.Append(autoredefine1);
-            style.Append(basedon1);
-            style.Append(linkedStyle1);
-            style.Append(locked1);
-            style.Append(primarystyle1);
-            style.Append(stylehidden1);
-            style.Append(semihidden1);
-            style.Append(styleName1);
-            style.Append(nextParagraphStyle1);
-            style.Append(uipriority1);
-            style.Append(unhidewhenused1);
-
-            // Create the StyleRunProperties object and specify some of the run properties.
-            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-            Bold bold1 = new Bold();
-            Color color1 = new Color() { ThemeColor = ThemeColorValues.Accent2 };
-            RunFonts font1 = new RunFonts() { Ascii = "Lucida Console" };
-            Italic italic1 = new Italic();
-            ParagraphBorders pb = new ParagraphBorders(new TopBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 24, Color = "FF0000" } ,
-                new BottomBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 24, Color = "FF0000" },
-                new LeftBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 24, Color = "FF0000" },
-                new RightBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 24, Color = "FF0000" });
-            // Specify a 12 point size.
-            FontSize fontSize1 = new FontSize() { Val = "24" };
-            styleRunProperties1.Append(bold1);
-            styleRunProperties1.Append(color1);
-            styleRunProperties1.Append(font1);
-            styleRunProperties1.Append(fontSize1);
-            styleRunProperties1.Append(italic1);
-            styleRunProperties1.Append(pb);
-
-            // Add the run properties to the style.
-            style.Append(styleRunProperties1);
-
-            // Add the style to the styles part.
-            styles.Append(style);
-        }
-
-        // Add a StylesDefinitionsPart to the document.  Returns a reference to it.
-        public static StyleDefinitionsPart AddStylesPartToPackage(WordprocessingDocument doc)
-        {
-            StyleDefinitionsPart part;
-            part = doc.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
-            Styles root = new Styles();
-            root.Save(part);
-            return part;
-        }
-
-        public static void BookMark(string filepath)
-        {
-            WordprocessingDocument doc =
-                WordprocessingDocument.Open(filepath, true);
-            Body body = doc.MainDocumentPart.Document.Body;
-            Paragraph paragraph1 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().First();
-            BookmarkStart bookmarkStart = new BookmarkStart() { Name = "p1", Id = "1" };
-            BookmarkEnd bookmarkEnd = new BookmarkEnd() { Id = "1" };
-            body.InsertBefore<BookmarkStart>(bookmarkStart, paragraph1);
-            body.InsertAfter<BookmarkEnd>(bookmarkEnd, paragraph1);
-
-            Paragraph paragraph3 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().ElementAt(2);
-            Run run2 = new Run() { RsidRunAddition = "009B0519" };
-            FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.Begin };
-            run2.Append(fieldChar1);
-            Run run3 = new Run() { RsidRunAddition = "009B0519" };
-            FieldCode fieldCode1 = new FieldCode() { Space = SpaceProcessingModeValues.Preserve };
-            fieldCode1.Text = " REF p1 \\h "; //Link to bookmark p1
-            run3.Append(fieldCode1);
-            Run run4 = new Run() { RsidRunAddition = "009B0519" };
-            FieldChar fieldChar2 = new FieldChar() { FieldCharType = FieldCharValues.Separate };
-            run4.Append(fieldChar2);
-            Run run5 = new Run() { RsidRunAddition = "009B0519" };
-            Text text2 = new Text();
-            text2.Text = "Link To Paragraph1";
-            run5.Append(text2);
-            Run run6 = new Run();
-            FieldChar fieldChar3 = new FieldChar() { FieldCharType = FieldCharValues.End };
-            run6.Append(fieldChar3);
-            paragraph3.Append(run2);
-            paragraph3.Append(run3);
-            paragraph3.Append(run4);
-            paragraph3.Append(run5);
-            paragraph3.Append(run6);
-
-            string parastyleid = "OverdueAmountPara";
-            if (paragraph3.Elements<ParagraphProperties>().Count() == 0)
-            {
-                paragraph3.PrependChild<ParagraphProperties>(new ParagraphProperties());
-            }
-
-            // Get a reference to the ParagraphProperties object.
-            ParagraphProperties pPr = paragraph3.ParagraphProperties;
-
-            // If a ParagraphStyleId object doesn't exist, create one.
-            if (pPr.ParagraphStyleId == null)
-                pPr.ParagraphStyleId = new ParagraphStyleId();
-
-            // Set the style of the paragraph.
-            pPr.ParagraphStyleId.Val = parastyleid;
-            doc.Close();
-        }
-
-        public static void ParseHtml(/*string filepath*/)
-        {
-            //HtmlDocument doc = new HtmlDocument();
-            //doc.Load(filepath);
-            var html =
-        @"<body><h1><b>bold</b> heading</h1><p>This is <b>underlined</b> paragraph</p></body>";
-
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-            HtmlNode node = doc.DocumentNode.SelectSingleNode("//body");
-            Node n1 = new Node();
-            n1.setNodename("body");
-            traverse(node, n1);
-            HtmlConvert(n1);
-        }
-
-        public static void traverse(HtmlNode node, Node pnode)
-        {
-            foreach (var n in node.ChildNodes)
-            {
-                Node tnode = new Node();
-                var nodename = n.Name;
-                tnode.setNodename(nodename);
-                tnode.setParent(pnode);
-                pnode.AddChild(tnode);
-                if (nodename == "#text")
-                    tnode.setText(n.InnerHtml);
-                else
-                    traverse(n, tnode);
-            }
-        }
-
-        public static void HtmlConvert(Node n1)
-        {
-            string document = @"C:\Users\12773\Desktop\demo.docx";
-            string nodename = n1.getNodename();
-            List<Node> nlist = n1.getChilds();
-            int count = nlist.Count;
-            switch (nodename)
-            {
-                case "body":
-                    for (int i = 0; i < count; i++)
-                        HtmlConvert(nlist[i]);
-                    break;
-
-                case "h1":
-                    for (int i = 0; i < count; i++)
-                        HtmlConvert(nlist[i]);
-                    break;
-
-                case "b":
-                    for (int i = 0; i < count; i++)
-                        HtmlConvert(nlist[i]);
-                    break;
-
-                case "#text":
-                    string txt = n1.getText();
-                    OpenAndAddTextToWordDocument(document, txt);
-                    SetBoldFont(document);
-                    SetItalic(document);
-                    SetUnderline(document);
-                    break;
-
-                default:
-                    break;
-            }            
-        }
-
-        public static void OpenAndAddTextToWordDocument(string filepath, string txt1)
-        {
-            // Open a WordprocessingDocument for editing using the filepath.
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
-
-            // Assign a reference to the existing document body.
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(fileName, true);
             Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
 
-            // Add new text.
-            Paragraph para = body.AppendChild(new Paragraph());
-            Run run = para.AppendChild(new Run());
-            run.AppendChild(new Text(txt1));
+            Table tb = new Table();
 
-            wordprocessingDocument.Close();
-        }
+            //Table properties
+            TableProperties tableProp = new TableProperties();
+            TableBorders tbb = new TableBorders( 
+                new TopBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new BottomBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new LeftBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new RightBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new InsideHorizontalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
+                new InsideVerticalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7}
+            );
+            TableWidth tableWidth = new TableWidth() { Width = "2300", Type = TableWidthUnitValues.Pct };
+            
+            tableProp.Append( tableWidth, tbb);
+            tb.AppendChild(tableProp);
 
-        public static void SetBoldFont(string filepath)
-        {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
-            RunProperties rPr = new RunProperties();
-            Bold bd = new Bold();
-            rPr.AppendChild(bd);
+            //Table column
+            TableGrid tg = new TableGrid();
+            
+            for (int i = 1; i < colcount; i++)
+            {
+                GridColumn gc = new GridColumn();
+                tg.AppendChild(gc);
+            }
+           
+            tb.AppendChild(tg);
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
-            r.PrependChild<RunProperties>(rPr);
+            //Table row
+            for (int j = 0; j < rowcount; j++)
+            {
+                TableRow tr = new TableRow();
+                for (int k = 0; k < colcount; k++)
+                {
+                    TableCell tc = new TableCell(new Paragraph(new Run(new Text(txtPatentlist[begintag][0]))));
+                    tr.Append(tc);
+                    begintag++;
+                }
+               
+                tb.AppendChild(tr);
+            }
+            body.AppendChild(tb);
             wordprocessingDocument.MainDocumentPart.Document.Save();
-
             wordprocessingDocument.Close();
         }
 
-        public static void SetItalic(string filepath)
+        public static void AppendListItem(Body body, string p, int level, int listcount, int i, bool isenter)
         {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
-            RunProperties rPr = new RunProperties();
-            Italic it = new Italic();
-            rPr.AppendChild(it);
+            Numbering element =
+  new Numbering(
+    new AbstractNum(
+      new Level(
+        new NumberingFormat() { Val = NumberFormatValues.Bullet },
+        new LevelText() { Val = "·" }
+      )
+      { LevelIndex = 0 }
+    )
+    { AbstractNumberId = 1 },
+    new NumberingInstance(
+      new AbstractNumId() { Val = 1 }
+    )
+    { NumberID = 1 });
 
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
-            r.PrependChild<RunProperties>(rPr);
-            wordprocessingDocument.MainDocumentPart.Document.Save();
+           
 
-            wordprocessingDocument.Close();
+            Paragraph paragraph1 = new Paragraph();
+            Paragraph paragraph2 = new Paragraph();
+            ParagraphProperties pp1 = new ParagraphProperties();
+            ParagraphProperties pp2 = new ParagraphProperties();
+            
+            int indent = 420 * (level + 1);
+            Indentation indentation2 = new Indentation() { Left = indent .ToString() };
+
+            NumberingProperties numberingProperties1 = new NumberingProperties();
+            NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() { Val = level };
+            NumberingId numberingId1 = new NumberingId() { Val = 1 };
+
+            numberingProperties1.Append(numberingLevelReference1);
+            numberingProperties1.Append(numberingId1);
+            Indentation indentation1 = new Indentation() { FirstLineChars = i };
+
+            
+            pp1.Append(numberingProperties1);
+            pp1.Append(indentation1);
+
+            pp2.Append(indentation2);
+
+            Run run = new Run();
+            Text text = new Text();
+            text.Text = p;
+
+            run.Append(text);
+             
+            if (isenter)
+            {
+                paragraph2.Append(pp2);
+                paragraph2.Append(run);
+                body.Append(paragraph2);
+            }
+            else
+            {
+                paragraph1.Append(pp1);
+                paragraph1.Append(run);
+                body.Append(paragraph1);
+            }           
+            
         }
-
-        public static void SetUnderline(string filepath)
-        {
-            WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(filepath, true);
-            RunProperties rPr = new RunProperties();
-            Underline ul = new Underline();
-            rPr.AppendChild(ul);
-
-            Run r = wordprocessingDocument.MainDocumentPart.Document.Descendants<Run>().First();
-            r.PrependChild<RunProperties>(rPr);
-            wordprocessingDocument.MainDocumentPart.Document.Save();
-
-            wordprocessingDocument.Close();
-        }
-
     }
 }
