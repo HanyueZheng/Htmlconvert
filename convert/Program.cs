@@ -16,6 +16,11 @@ namespace convert
     class Program
     {
         static List<List<string>> txtPatentlist = new List<List<string>>();
+        static WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open("test.docx", true);
+        //static WordprocessingDocument wordprocessingDocument = new WordprocessingDocument();
+        static MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+        static Body body = new Body();
+
         static void Main(string[] args)
         {
             //string path = "case.html";
@@ -33,7 +38,8 @@ namespace convert
             }
             string path = "demo.html";
             Program.ParseHtml(path);
-            ProcessTranslate();
+            string savepath = "test.docx";
+            ProcessTranslate(savepath);
             string document = @" demo.docx";
         }
 
@@ -73,16 +79,19 @@ namespace convert
 
         public static void BookMark(string filepath)
         {
-            WordprocessingDocument doc =
-                WordprocessingDocument.Open(filepath, true);
-            Body body = doc.MainDocumentPart.Document.Body;
-            Paragraph paragraph1 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().First();
+            //WordprocessingDocument doc =
+            //WordprocessingDocument.Open(filepath, true);
+            //Body body = doc.MainDocumentPart.Document.Body;
+            //Paragraph paragraph1 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().First();
+            Paragraph paragraph1 = body.Elements<Paragraph>().First();
+
             BookmarkStart bookmarkStart = new BookmarkStart() { Name = "p1", Id = "1" };
             BookmarkEnd bookmarkEnd = new BookmarkEnd() { Id = "1" };
             body.InsertBefore<BookmarkStart>(bookmarkStart, paragraph1);
             body.InsertAfter<BookmarkEnd>(bookmarkEnd, paragraph1);
 
-            Paragraph paragraph3 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().ElementAt(2);
+            //Paragraph paragraph3 = doc.MainDocumentPart.Document.Body.Elements<Paragraph>().ElementAt(2);
+            Paragraph paragraph3 = body.Elements<Paragraph>().ElementAt(2);
             Run run2 = new Run() { RsidRunAddition = "009B0519" };
             FieldChar fieldChar1 = new FieldChar() { FieldCharType = FieldCharValues.Begin };
             run2.Append(fieldChar1);
@@ -121,7 +130,7 @@ namespace convert
 
             // Set the style of the paragraph.
             pPr.ParagraphStyleId.Val = parastyleid;
-            doc.Close();
+            //doc.Close();
         }
 
         public static void ParseHtml(string filepath)
@@ -153,10 +162,6 @@ namespace convert
                     if (nodename == "h1"|| nodename == "h2"|| nodename == "h3" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
                     {
                         Node teminal = new Node();
-                        if (nodename == "table")
-                        {
-
-                        }
                         teminal.setNodename("\n");
                         pnode.AddChild(teminal);
                        
@@ -248,9 +253,16 @@ namespace convert
             txtPatentlist.Add(plist);
         }
 
-        public static void ProcessTranslate()
+        public static void ProcessTranslate(string document)
         {
-            string document = @"demo.docx";
+            if (!File.Exists(document))
+            {
+                FileStream f = File.Create(document);
+                StreamWriter sw = new StreamWriter(f);
+                sw.Write("\n");
+                f.Close();
+                f.Dispose();
+            }
             int begintag = 0;
             int endtag = 0;
             int listcount = 1;
@@ -286,9 +298,9 @@ namespace convert
 
                 else if (txtPatentlist[begintag].Contains("ul"))
                 {
-                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-                    MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
-                    Body body = m.Document.Body;
+                    //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    //MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+                    //Body body = m.Document.Body;
 
                     NumberingDefinitionsPart numberingPart = m.NumberingDefinitionsPart;
                     if (numberingPart == null)
@@ -354,13 +366,14 @@ namespace convert
                         isenter = false;
                     }
                     listcount++;
-                    wordprocessingDocument.Close();                                 
+                    //wordprocessingDocument.Close();                                 
                 }
 
                 else if (txtPatentlist[begintag].Contains("pre"))
                 {
-                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    
+                    //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
                     Paragraph para = new Paragraph();
 
                     ParagraphProperties paraProperties = new ParagraphProperties();
@@ -389,10 +402,11 @@ namespace convert
                         run.Append(new Break());
                     }
 
+                    
                     body.AppendChild(para);
                     wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                    wordprocessingDocument.Close();
+                    //wordprocessingDocument.Close();
                 }
 
                 else if (txtPatentlist[begintag].Contains("h1"))
@@ -415,8 +429,8 @@ namespace convert
 
                 else
                 {
-                    WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-                    Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+                    //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+                    //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
                     Paragraph para = body.AppendChild(new Paragraph());
 
                     for (; begintag < endtag; begintag++)
@@ -454,18 +468,21 @@ namespace convert
                             }
                         }
                     }
-                    wordprocessingDocument.Close();
+                    //wordprocessingDocument.Close();
                 }
                                 
                 begintag = endtag + 1;
             }
-          
+            m.Document.Body = body;
+            wordprocessingDocument.MainDocumentPart.Document.Save();
+            wordprocessingDocument.Close();
+
         }
 
-       public static void CreateWordDocumentUsingMSWordStyles(int begintag, int endtag, string outputPath, string templatePath)
+        public static void CreateWordDocumentUsingMSWordStyles(int begintag, int endtag, string outputPath, string templatePath)
         {
             // create a copy of the template and open the copy
-            System.IO.File.Copy(templatePath, outputPath, true);
+            File.Copy(templatePath, outputPath, true);
 
             using (var document = WordprocessingDocument.Open(outputPath, true))
             {
@@ -501,8 +518,8 @@ namespace convert
 
         public static void SetTitle2(int begintag, int endtag, string val, string document)
         {
-            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
 
             StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
 
@@ -545,14 +562,14 @@ namespace convert
                 body.Append(p);
                 wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                wordprocessingDocument.Close();
+                //wordprocessingDocument.Close();
             }
         }
 
         public static void SetTitle3(int begintag, int endtag, string val, string document)
         {
-            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
 
             StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
 
@@ -595,14 +612,14 @@ namespace convert
                 body.Append(p);
                 wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                wordprocessingDocument.Close();
+                //wordprocessingDocument.Close();
             }
         }
 
         public static void SetTitle(int begintag, int endtag, string val, string document)
         {
-            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
-            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
 
             StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
             if (part != null)
@@ -645,7 +662,7 @@ namespace convert
                 body.Append(p);
                 wordprocessingDocument.MainDocumentPart.Document.Save();
 
-                wordprocessingDocument.Close();
+                //wordprocessingDocument.Close();
             }
         }
 
@@ -872,8 +889,8 @@ namespace convert
 
         public static void CreateTable(string fileName, int colcount, int rowcount, int begintag)
         {
-            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(fileName, true);
-            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+            //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(fileName, true);
+            //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
 
             Table tb = new Table();
 
@@ -918,14 +935,14 @@ namespace convert
             }
             body.AppendChild(tb);
             wordprocessingDocument.MainDocumentPart.Document.Save();
-            wordprocessingDocument.Close();
+            //wordprocessingDocument.Close();
         }
 
         public static void AppendListItem(WordprocessingDocument wordprocessingDocument, string p, int level, int listcount, int i, bool isenter)
         {
             
-            MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
-            Body body = m.Document.Body;
+            //MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+            //Body body = m.Document.Body;
 
 
             Paragraph paragraph1 = new Paragraph();
