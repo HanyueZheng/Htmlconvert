@@ -1,0 +1,7 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|ReverseDistanceAccount_1|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|ReverseDistanceAccount_2|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

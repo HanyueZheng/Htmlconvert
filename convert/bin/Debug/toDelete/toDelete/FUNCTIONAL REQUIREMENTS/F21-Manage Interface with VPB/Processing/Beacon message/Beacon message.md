@@ -1,0 +1,149 @@
+﻿
+当信标天线经过线路上信标上方时，会产生top-loc信号并送给VPB板。当ATP读到该信号时，记录此时刻的里程计齿数，并获取、解析及验证收到的信标消息。为防止VPB未能正确刷新信标消息寄存器里的值，ATP软件每周期将生成随机数并写给VPB，尤其将该数附加到信标消息中，作为收到该信标的时间信息。
+When the Beacon antenna passes the upside of beacon, it will generate the top-loc signal and send it to VPB board. While the ATP gets this signal, it will lock the odometer cog counter at this moment, and will obtain, parse and check the beacon message.
+[iTC_CC_ATP-SwRS-0120]
+BeaconChecksumFailure，判断信标消息校核字是否正确。
+主任务中，如果发现中断中LockedBeaconMsgReady为True，则需对LockedBeaconMsgByte信息进行校验，包括根据上周期或上上周期的ATCkey检测信标消息实时性，并计算信标的SACEM校核字。
+如果校验错误，则设置 BeaconChecksumFailure为True
+如果校验正确，则设置 BeaconChecksumFailure为False。
+如果本周期LockedBeaconMsgReady为False，则设置BeaconChecksumFailure为False。
+BeaconChecksumFailure judges whether the checksum of beacon message is correct or not. 
+In the main task, if LockedBeaconMsgReady is True, LockedBeaconMsgByteneed to be detected, including validity of ATCkey and calculation of the SACEM checksum of beacon.
+ATP shall reject each beacon message which vital checksum is corrupted.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0164], [iTC_CC-SyAD-0173], [iTC_CC-SyAD-0957], [iTC_CC-SyAD-0969], [iTC_CC_ATP_SwHA-0036], [iTC_CC_VLE-2-VPB-2-SyID-0028]
+[End]
+[iTC_CC_ATP-SwRS-0117]
+在ATP主任务中，如果中断中的LockedBeaconMsgReady状态为True，且BeaconChecksumFailure为False，则设置BeaconMessageReceive为True；否则令其为False。其中，如果ATP在一个周期中收到多于一个信标时，仅处理最后一个信标，据此更新BeaconMessageReceive。
+In the main task of ATP, if the status of LockedBeaconMsgReady in the interrupt is True, and the BeaconChecksumFailure is False, ATP shall set the BeaconMessageReceive as True; and vice versa. If ATP receives more than one beacons in this cycle, it will deal with the last beacon and based on this data to update the BeaconMessageReceive.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0171], [iTC_CC-SyAD-0164]
+[End]
+[iTC_CC_ATP-SwRS-0118]
+BeaconCount，ATP记录从上电开始，到当前周期共收到多少次Top-loc信号。
+BeaconCount represents the accumulated number of received Top-loc signal from power on to current cycle.
+```
+	if (Initialization)
+	    BeaconCount = 0
+	else:
+	     BeaconCount = LockedTopLocCounter(k) + BeaconCount(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0408]
+[End]
+[iTC_CC_ATP-SwRS-0119]
+如果本周期BeaconMessageReceive为True，则解析锁存的LockedBeaconMsgByte数组，生成BeaconMessage信息，其结构为ST_BEACON_MSG：
+If the BeaconMessageReceive is True, ATP shall parse the value of LockedBeaconMsgByte and generate BeaconMessage with structure as ST_BEACON_MSG:
+
+|Identification|Logical Type|Description|
+|-----|
+|ST_BEACON_MSG|||
+||ID| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|信标标识|
+||Variants[MAX_BM_VARIANT_NB]| REF BOOLEAN \h  \* MERGEFORMAT BOOLEAN|变量状态|
+||DefaultMessage| REF BOOLEAN \h  \* MERGEFORMAT BOOLEAN|是否默认消息|
+||BlockModeVariantAvailable| REF BOOLEAN \h  \* MERGEFORMAT BOOLEAN|所带变量是否有效|
+
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0171]
+[End]
+[iTC_CC_ATP-SwRS-0121]
+如果本周期BeaconMessageReceive为True，则从LockedBeaconMsgByte中获取信标ID，设置BeaconMessage.ID；其他情况保持不变。
+If the status of BeaconMessageReceive is True, the BeaconMessage.ID is obtained by LockedBeaconMsgByte; Otherwise, keep it unchanged.
+```
+	if (Initialization)
+	    BeaconMessage.ID = 0
+	elif (BeaconMessageReceive(k))
+	    BeaconMessage.ID = LockedBeaconMsgByte[BEACON_ID_BITS]
+	else:
+	    BeaconMessage.ID = BeaconMessage.ID(k-1)
+```
+其中BEACON_ID_BITS表示[REF4]中定义的信标消息中表示信标ID的位数。
+BEACON_ID_BITS represents the index of beacon ID in the beacon message defined in [REF4].
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0175]
+[End]
+[iTC_CC_ATP-SwRS-0122]
+如果本周期BeaconMessageReceive为True，则从LockedBeaconMsgByte中获取变量数据，设置数组BeaconMessage.Variants[MAX_BM_VARIANT_NB]；若本周期未读到新的信标则保持不变。
+If the BeaconMessageReceive is True, the variants is come from LockedBeaconMsgByteand ATP set as BeaconMessage.Variants[MAX_BM_VARIANT_NB]; if there is no beacon read at the end of cycle, there is no changes.
+```
+	if (Initialization)
+	    BeaconMessage.Variants = {0,..,0}
+	elif (BeaconMessageReceive(k))
+	    BeaconMessage.Variants(k)
+	        = {LockedBeaconMsgByte[BM_VARIANTS_BIT_0],
+	            ...,
+	            LockedBeaconMsgByte[BM_VARIANTS_BIT_15]}
+	else:
+	    BeaconMessage.Variants = BeaconMessage.Variants(k-1)
+```
+其中BM_VARIANTS_BIT_0...BM_VARIANTS_BIT_15表示[REF4]中定义的信标消息中表示BM信标变量的位数。
+BM_VARIANTS_BIT_0...BM_VARIANTS_BIT_15 represents the index of BM beacon variants defined in [REF4].
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0163], [iTC_CC-SyAD-0176]
+[End]
+[iTC_CC_ATP-SwRS-0123]
+如果本周期BeaconMessageReceive为True，则从LockedBeaconMsgByte中判断是否默认消息，设置BeaconMessage.DefaultMessage；若本周期未读到新的信标则保持不变。
+If the BeaconMessageReceive is True, the default message is judged by LockedBeaconMsgByteand ATP set the BeaconMessage.DefaultMessage; if there is no new beacon read, it keeps unchanged.
+```
+	if (Initialization)
+	    BeaconMessage.DefaultMessage = False
+	elif (BeaconMessageReceive(k))
+	    BeaconMessage.DefaultMessage(k)
+	        = LockedBeaconMsgByte[DEFAULT_MESSAGE_BIT]
+	else:
+	    BeaconMessage.DefaultMessage = BeaconMessage.DefaultMessage(k-1)
+```
+其中DEFAULT_MESSAGE_BIT表示[REF4]中定义的信标消息中表示信标是否为默认消息的位数。
+DEFAULT_MESSAGE_BIT represents the index of beacon that judges default message, which defined in the [REF4].
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0170]
+[End]
+[iTC_CC_ATP-SwRS-0124]
+如果本周期BeaconMessageReceive为True，则从LockedBeaconMsgByte中判断变量是否可用信息，设置BeaconMessage.BlockModeVariantAvailable；若本周期未读到新的信标则保持不变。
+If the BeaconMessageReceive is True, it is feasible to judge whether the variants are available through LockedBeaconMsgByte and ATP set as BeaconMessage.BlockModeVariantAvailable; If there is no new beacon read, it keeps invariable. 
+```
+	if (Initialization)
+	    BeaconMessage.BlockModeVariantAvailable = False
+	elif (BeaconMessageReceive(k))
+	    BeaconMessage.BlockModeVariantAvailable(k)
+	        = LockedBeaconMsgByte[BLOCK_MODE_VARIANT_AVAILABLE_BIT]
+	else:
+	    BeaconMessage.BlockModeVariantAvailable(k)
+	        = BeaconMessage.BlockModeVariantAvailable(k-1)
+```
+其中BLOCK_MODE_VARIANT_AVAILABLE_BIT表示[REF4]中定义的信标消息中表示信标所带变量是否可用的位数。
+BLOCK_MODE_VARIANT_AVAILABLE_BIT stands for the index of the beacon variants in the beacon message defined in [REF4]. 
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0170]
+[End]
+[iTC_CC_ATP-SwRS-0049]
+车载ATP每周期计算得到伪随机数ATCkey，并将其写入VPB-2板相应寄存器，用于区分VPB-2消息的实时性。
+At each cycle, ATP shall provide to beacon device the ATCkey in order to be able to control message freshness.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source= [iTC_CC-SyAD-0165], [iTC_CC_ATP_SwHA-0175], [iTC_CC-SyAD-0064], [iTC_CC_VLE-2-VPB-2-SyID-0028]
+[End]
+[iTC_CC_ATP-SwRS-0767]
+ATP应读取VPB板的CBKWrite.RadarReg信息，供维护诊断使用。
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source= [iTC_CC_VLE-2-VPB-2-SyID-0015], [iTC_CC_VLE-2-VPB-2-SyID-0029]
+[End]

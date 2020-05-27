@@ -1,0 +1,8 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|OdometerSpeedAvailable|√|√| REF BOOLEAN BOOLEAN|
+|UnrecoverableAxleLocked|√|√| REF BOOLEAN BOOLEAN|
+|WheelTrainKinematicCorrelation|√|√| REF BOOLEAN BOOLEAN|
+

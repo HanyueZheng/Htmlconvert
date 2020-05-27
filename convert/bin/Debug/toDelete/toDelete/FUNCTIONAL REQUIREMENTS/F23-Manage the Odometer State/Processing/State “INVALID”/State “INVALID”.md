@@ -1,0 +1,31 @@
+﻿
+[iTC_CC_ATP-SwRS-0189]
+在无效状态停车，并未检测到传感器错误，则能回到非初始化状态。
+At cycle k, ATP shall consider that OdometerState changes from INVALID to NOT_INITIALIZED if:
+OdometerState was evaluated Invalid at cycle k-1,
+and wheel is detected stopped (WheelFilteredStopped),
+and there is no sensors test inconsistency.
+```
+	if (OdometerState(k-1) == INVALID
+	     and WheelFilteredStopped(k)
+	     and not UnconsistentSensorTest(k))
+	    OdometerState = NOT_INITIALIZED
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149]
+[End]
+[iTC_CC_ATP-SwRS-0578]
+在里程计无效状态下，ATP直接使用测得值计算车轮位移（因为此时列车运动学失效，后续功能并不使用测得的列车车轮位移）。
+In invalid status, ATP shall calculate wheel movement by using measured value of the odometer.
+```
+	if (OdometerState(k) == INVALID)
+	    WheelMinimumMovement(k) = MinCogCalibration(k-1) * (TeethCounter(k) — TeethCounter(k-1))
+	    WheelMaximumMovement(k) = MaxCogCalibration(k-1) * (TeethCounter(k) — TeethCounter(k-1))
+```
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149]
+[End]

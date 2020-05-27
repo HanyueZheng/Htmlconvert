@@ -1,0 +1,162 @@
+﻿
+由于ATP对车头最大定位进行过估，使得出现列车实际未通过某信号机，但ATP已认为通过了该信号机的状态。在此情况下，如果联锁取消该信号机下游进路，而ATP由于已通过该信号机从而不监控其状态变化，仍能授权列车继续前进，从而可能导致危险的发生。
+Because ATP always overestimates the maximum location of the train front end, it is possible to consider the train has crossed a signal but actually not. In this case, if the CI cancelled the route downstream of this signal and it changed to restricted status accordingly, ATP cannot prohibit the train to moving on the unauthorized route (because ATP think the train has crossed the signal and the CI cannot change the route).
+为避免上述情形，在Block运营模式下，ATP需增加考虑信号机下游的一段可配置区域，如果车头最大最小定位与该区域有交集时，仍需监控信号机状态，并确保在信号机变为限制状态后的一段可配置时间内列车通过了该段区域，否则将触发EB。在CBTC模式下，模糊区监控由ZC负责。
+To avoid this situation, in Block operation mode, ATP needs to consider an additional area downstream the signal, called moral time area. If the train location intersects with the moral time area more than a configurable period just after the signal change from the permissive to the restrictive status, ATP shall trigger the EB. In CBTC mode, the monitoring of moral time is handled by ZC.
+[iTC_CC_ATP-SwRS-0292]
+NotOnRestrictiveMoralTimeArea_1，当列车定位时，ATP需判断END_1端车头的内外侧 定位是否与该端车头朝向的“限制状态”信号机下游的模糊时间区有无交集。其中模糊时间区定义为信号机下游长度为ATPsetting.MTdistance的一段范围。
+当满足下列所有条件时，设置NotOnRestrictiveMoralTimeArea_1为True：
+列车已确认定位；
+并且：
+END_1端车头的内外侧定位与END_1端车头朝向的信号机下游模糊区没有交集；
+或者，END_1端车头的内外侧定位与END_1端车头朝向的信号机下游模糊区有交集，但该信号机是允许状态。
+否则，应设置NotOnRestrictiveMoralTimeArea_1为False。
+```
+	def NotOnRestrictiveMoralTimeArea_1(k):
+	    Signal = TrackMap.ExistSingularityInReverseZone(SGL_SIGNAL,
+	                                              TrainLocation.Ext1,
+	                                              ATPsetting.MTdistance + TrainLocation(k).Uncertainty)
+	    return (TrainLocatedOnKnownPath(k)
+	            and (Signal is None
+	                 or not Signal.BmMoralTime
+	                 or VariantValue(Signal.Variant, k)))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0321], [iTC_CC-SyAD-0322], [iTC_CC-SyAD-1295], [iTC_CC_ATP_SwHA-0116]
+[End]
+[iTC_CC_ATP-SwRS-0293]
+NotOnRestrictiveMoralTimeArea_2，当列车定位时，ATP需判断END_2端车头的内外侧定位是否与该端车头朝向的“限制状态”信号机下游的模糊时间区有无交集。
+当满足下列所有条件时，设置NotOnRestrictiveMoralTimeArea_2为True：
+列车已确认定位；
+并且：
+END_2端车头的内外侧定位与END_2端车头朝向的信号机下游模糊区没有交集；
+或者，END_2端车头的内外侧定位与END_2端车头朝向的信号机下游模糊区有交集，但该信号机是允许状态。
+否则，应设置NotOnRestrictiveMoralTimeArea_2为False。
+```
+	def NotOnRestrictiveMoralTimeArea_2(k):
+	    Signal = TrackMap.ExistSingularityInReverseZone(SGL_SIGNAL,
+	                                              TrainLocation.Ext2,
+	                                              ATPsetting.MTdistance + TrainLocation(k).Uncertainty)
+	    return (TrainLocatedOnKnownPath(k)
+	            and (Signal is None
+	                 or not Signal.BmMoralTime 
+	                 or VariantValue(Signal.Variant, k)))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0321], [iTC_CC-SyAD-0322], [iTC_CC-SyAD-1295], [iTC_CC_ATP_SwHA-0116]
+[End]
+[iTC_CC_ATP-SwRS-0294]
+RouteExclusivityGuaranted_1，如果列车在车头1对应方向且限制状态的模糊时间区内超过项目设定时间，则ATP应将该值设为限制状态。其中MoralTimeTimer_1为记录列车在车头1对应方向的限制状态模糊时间区内的时间。
+If ATP cannot determine train is NotOnRestrictiveMoralTimeArea_1, and if this situation lasts more than ATPsetting. MTtimeout cycles, ATP shall consider that route exclusivity is not guaranteed and RouteExclusivityGuaranted_1 shall be set to False.
+If ATP detects that train is NotOnRestrictiveMoralTimeArea_1, route exclusivity shall consider as guaranteed for that direction of travel and RouteExclusivityGuaranted_1 shall set to True
+```
+	def RouteExclusivityGuaranted_1(k):
+	    if (Initialization):
+	        RouteExclusivityGuaranted_1 = False
+	    elif (RouteExclusivityGuaranted_1(k-1)
+	          and not NotOnRestrictiveMoralTimeArea_1(k)):
+	        if (MoralTimeTimer_1(k-1) < round.floor(ATPsetting.MTtimeout)):
+	            MoralTimeTimer_1 = MoralTimeTimer_1(k-1) + 1
+	        else:
+	            RouteExclusivityGuaranted_1 = False
+	    elif (NotOnRestrictiveMoralTimeArea_1(k)):
+	        MoralTimeTimer_1 = 1
+	        RouteExclusivityGuaranted_1 = True
+	    else:
+	        RouteExclusivityGuaranted_1 = RouteExclusivityGuaranted_1(k-1)
+	    return RouteExclusivityGuaranted_1
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0321], [iTC_CC_ATP_SwHA-0118]
+[End]
+[iTC_CC_ATP-SwRS-0295]
+RouteExclusivityGuaranted_2，如果列车在车头2对应方向且限制状态的模糊时间区内超过项目设定时间，则ATP应将该值设置为限制状态，其中MoralTimeTimer_2为记录列车在车头2对应方向限制状态模糊时间区内的时间。
+If ATP cannot determine train is NotOnRestrictiveMoralTimeArea_2, and if this situation lasts more than ATPsetting.MTtimeout cycles, ATP shall consider that route exclusivity is not guaranteed and RouteExclusivityGuaranted_2 shall set to False.
+If ATP detects that train is NotOnRestrictiveMoralTimeArea_2, route exclusivity shall consider as guaranteed for that direction of travel and RouteExclusivityGuaranted_2 shall set to True
+```
+	def RouteExclusivityGuaranted_2(k):
+	    if (Initialization):
+	        RouteExclusivityGuaranted_2 = False
+	    elif (RouteExclusivityGuaranted 2(k-1)
+	          and not NotOnRestrictiveMoralTimeArea_2(k)):
+	        if (MoralTimeTimer_2(k-1) < round.floor(ATPsetting.MTtimeout)):
+	            MoralTimeTimer_2 = MoralTimeTimer_2(k-1) + 1
+	        else:
+	            RouteExclusivityGuaranted_2 = False
+	    elif (NotOnRestrictiveMoralTimeArea_2(k)):
+	        MoralTimeTimer_2 = 1
+	        RouteExclusivityGuaranted_2 = True
+	    else:
+	        RouteExclusivityGuaranted_2 = RouteExclusivityGuaranted_2(k-1)
+	    return RouteExclusivityGuaranted_2
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0321], [iTC_CC_ATP_SwHA-0118]
+[End]
+[iTC_CC_ATP-SwRS-0296]
+HazardousMotionOnNonExclusiveRoute，非RM的BM模式下，如果列车在激活端车头方向的限制状态的Moral Time区停止超时预设时间，则ATP认为当前处于“非独占进路”的风险之中。
+If RouteExclusivityGuaranted_1 is False, ATP shall request emergency braking if and only if:
+TrainFrontEnd is not END_2,
+RM forward nor RM reverse are not selected,
+and block mode is not selected.
+If RouteExclusivityGuaranted_2 is False, ATP shall request emergency braking if and only if:
+TrainFrontEnd is not END_1,
+RM forward nor RM reverse driving mode are not selected,
+and block mode is not selected.
+```
+	def HazardousMotionOnNonExclusiveRoute(k):
+	    return (((not RouteExclusivityGuaranted_1(k) and (TrainFrontEnd(k)!= END_2))
+	             or (not RouteExclusivityGuaranted_2(k) and (TrainFrontEnd(k)!= END_1)))
+	            and not MotionProtectionInhibition(k)
+	            and BlockModeUsed(k)) 
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0323], [iTC_CC-SyAD-0324]
+[End]
+[iTC_CC_ATP-SwRS-0297]
+PBonNonExclusiveRoute，当由于MoralTime监控导致的停车后，是否保持输出停车制动的取决于项目配置。
+ATP shall request parking braking if train considered too near from a non-exclusive route and if following conditions are fulfilled:
+the train is detected at filtered stop,
+safe immobilization customization setting for this control indicates to use parking brake.
+```
+	PBonNonExclusiveRoute(k)
+	= HazardousMotionOnNonExclusiveRoute(k)
+	 and TrainFilteredStopped(k)
+	 and (ATPsetting.MTimmoBehaviourAtFS == IB_APPLY_PARKING_BRAKE)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0324], [iTC_CC-SyAD-0325], [iTC_CC_ATP_SwHA-0117]
+[End]
+[iTC_CC_ATP-SwRS-0298]
+EBonNonExclusiveRoute，如果当前处于“非独占进路”的风险中，且列车在移动，则ATP应当输出EB；如果当前已停车，则是否继续输出EB取决于项目配置。
+ATP shall request emergency braking if train considered too near from a non-exclusive route and if following conditions are fulfilled:
+the train is not detected at filtered stop,
+or the train is detected at filtered stop and:
+safe immobilization customization setting for this control indicates to use emergency brake,
+or safe immobilization customization setting for this control indicates to use emergency brake when it was already applied.
+```
+	EBonNonExclusiveRoute(k)
+	= （HazardousMotionOnNonExclusiveRoute(k)
+	    and (not TrainFilteredStopped(k)
+	         or (TrainFilteredStopped(k)
+	              and ((ATPsetting.MTimmoBehaviourAtFS == IB_APPLY_EMERGENCY_BRAKE)
+	                 or ((ATPsetting.MTimmoBehaviourAtFS == IB_APPLY_EMERGENCY_BRAKE_WHEN_TRIGGERED)
+	                      and not InhibitEmergencyBrake(k-1))))))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0324], [iTC_CC-SyAD-0325], [iTC_CC_ATP_SwHA-0119]
+[End]

@@ -1,0 +1,8 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|EBforReverseOverSpeed|√|√| REF BOOLEAN BOOLEAN|
+|ReverseOverSpeed|√|√| REF BOOLEAN BOOLEAN|
+|ReverseSpeedRestrictions|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

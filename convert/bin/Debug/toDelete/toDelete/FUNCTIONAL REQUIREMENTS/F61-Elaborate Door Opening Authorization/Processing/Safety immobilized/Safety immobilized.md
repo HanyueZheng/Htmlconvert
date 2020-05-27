@@ -1,0 +1,45 @@
+﻿
+ATP需知道列车当前是否施加了制动，用于判断安全停稳信息。
+The ATP needs to know whether the train has applied the parking or emergency brake, which used to judge the safe immobilization.
+[iTC_CC_ATP-SwRS-0576]
+TrainEmergencyBrakeApplied，列车是否施加了紧急制动。其状态来自于项目可配置的列车输入采集。
+TrainEmergencyBrakeApplied shows that whether the train has applied emergency brake. 
+If the project is not configured, ATP shall consider the emergency brake has not applied by the train. 
+Otherwise, if either of the end is in emergency brake, ATP considers the emergency brake has applied.
+```
+	def TrainEmergencyBrakeApplied(k):
+	    return Offline.GetTrainEmergencyBrakeApplied(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source= [iTC_CC-SyAD-1003], [iTC_CC-SyAD-1224], [iTC_CC_ATP_SwHA-0222]
+[End]
+[iTC_CC_ATP-SwRS-0073]
+TrainParkingBrakeApplied，任一端车头已施加停车制动，则认为停车制动已施加。其状态来自于项目可配置的列车输入采集。
+The term TrainParkingBrakeApplied stands for that either of the train ends is in parking brake.
+```
+	def TrainParkingBrakeApplied(k):
+	    return Offline.GetTrainParkingBrakeApplied(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0233], [iTC_CC-SyAD-0234], [iTC_CC-SyAD-0235], [iTC_CC-SyAD-1003], [iTC_CC-SyAD-1223], [iTC_CC_ATP_SwHA-0222]
+[End]
+[iTC_CC_ATP-SwRS-0329]
+TrainSafelyImmobilised，判断是否已经安全停车
+ATP shall consider that train safely immobilized if:
+Train brake has detected safely applied, or train parking brake is detected;
+And train is detected at filtered stop.
+```
+	def TrainSafelyImmobilised(k):
+	    return ((TrainEmergencyBrakeApplied(k)
+	             or TrainParkingBrakeApplied(k))
+	            and TrainFilteredStopped(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0236], [iTC_CC_ATP_SwHA-0135]
+[End]

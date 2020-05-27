@@ -1,0 +1,83 @@
+﻿
+[iTC_CC_ATP-SwRS-0654]
+MemLocationNotConfirmed，是否通过本端或远端的记忆定位初始化列车定位，但还未通过重定位信标确认定位。
+```
+	def MemLocationNotConfirmed(k):
+	    if (Initialization
+	        or not TrainLocalized(k)
+	        or TrainRealignmentOnBeacon(k)):
+	        return False
+	    elif (TrainPresumablyLocalized(k)):
+	        return True
+	    elif (TrainLocatedOnOtherATP(k)):
+	        return OtherATP.LocatedWithMemLocation(k)
+	    else:
+	        return MemLocationNotConfirmed(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0213], [iTC_CC-SyAD-1208]
+[End]
+[iTC_CC_ATP-SwRS-0655]
+LocationUncertaintyExceedTime，记录超过最大定位误差的时间
+```
+	def LocationUncertaintyExceedTime(k):
+	    if (Initialization):
+	        return 0
+	    elif (TrainLocalized(k)
+	          and ((MemLocationNotConfirmed(k) or not LocationPathKnown(k))
+	                and (TrainLocation(k).Uncertainty
+	                     > ATPsetting.LocationMaxUncertaintyNotConfirmed))):
+	        return (ATPtime(k) + ATPsetting.LocReportValidityTime)
+	    else:
+	        return LocationUncertaintyExceedTime(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0213], [iTC_CC-SyAD-1215]
+[End]
+计算在误差超过最大范围后，是否经过了LocReport有效期。即表明ZC那边已确保不会再用旧的定位信息
+[iTC_CC_ATP-SwRS-0656]
+LocationNotUncertaintyExceed，判断是否还处在最大定位误差的确认时间内
+```
+	def LocationNotUncertaintyExceed(k):
+	    if (Initialization):
+	        return False
+	    elif (TrainLocalized(k)):
+	        return Message.IsMoreRecent(ATPtime(k), LocationUncertaintyExceedTime(k))
+	    else:
+	        return LocationNotUncertaintyExceed(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0213], [iTC_CC-SyAD-1215]
+[End]
+[iTC_CC_ATP-SwRS-0411]
+LocalizedAuthorizationForSweepping，发给ZC的是否定位信息。
+ATP shall send the current localization status to the ZC.
+```
+	def LocalizedAuthorizationForSweepping(k):
+	    return (TrainLocalized(k)
+	            and LocationNotUncertaintyExceed(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0207], [iTC_CC-SyAD-0213], [iTC_CC_ATP_SwHA-0211]
+[End]
+[iTC_CC_ATP-SwRS-0412]
+TrainConfirmedLocalized，发给ZC的是否确认定位信息。
+ATP shall send the status of the localization status whether confirmed.
+```
+	def TrainConfirmedLocalized(k):
+	    return (LocationPathKnown(k)
+	            and not MemLocationNotConfirmed(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0207], [iTC_CC-SyAD-1097]
+[End]

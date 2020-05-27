@@ -1,0 +1,16 @@
+<p>[iTC_CC_ATP-SwRS-0039]
+初始化相关硬件，如VPB板，若硬件初始化成功则继续执行；若失败，则CPU1的ATP软件在LED上显示ERR_INIT_VPB信息，并禁止软件继续执行，等待操作人员手动重启系统。
+The hardware needs to be initialized, e.g. VPB board. If the initialization of hardware succeeds, the system will continue. Otherwise, ATP on CPU1 shall show the message in the LED as ERR_INIT_VPB, and prohibit software executing and waiting for the system reboot by the operator.<br />
+#Category=Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0064], [iTC_CC-SyAD-0831], [iTC_CC-SyAD-0032], [iTC_CC-SyAD-
+1423][End]
+[iTC_CC_ATP-SwRS-0591]
+初始化时，ATP上下CPU模块应当比较读取自VPB板的CBKWrite. SensorReg, CogCounterReg, CalibrationReg, StatusReg寄存器初值是否相同。若相同则继续执行，否则，应在LED上显示UNCONST_VPB信息，并禁止软件继续执行。
+In initialization, ATP in two CPU modules shall compare the values from VPB registers. If these initial values are equal, the ATP will continue; Otherwise, ATP shall show the message in LED as UNCONST_VPB, and prohibit software executing.
+#Category=Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0032]
+[End]</p>

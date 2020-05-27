@@ -1,0 +1,76 @@
+<p>[iTC_CC_ATP-SwRS-0597]
+MemorizedLocationAuthorized，项目配置是否授权使用记忆定位</p>
+<pre><code>	def MemorizedLocationAuthorized(k):
+	    return Offline.GetMemorizedLocationAuthorized(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-1206]
+[End]
+[iTC_CC_ATP-SwRS-0643]
+MemorizedLocationEnable，仅在刚上电车还未动时允许使用记忆定位</p>
+<pre><code>	def MemorizedLocationEnable(k):
+	    return (not TrainHasMoved(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1207]
+[End]
+[iTC_CC_ATP-SwRS-0644]
+MemorizedLocationAvailable，记忆定位是否可用</p>
+<pre><code>	def MemorizedLocationAvailable(k):
+	    return (TrainFilteredStopped(k)
+	            and ValidTrainKinematic(k)
+	            and MemorizedLocationAuthorized(k)
+	            and MemorizedLocationEnable(k)
+	            and Message.VitalChecksumValid(MemLocation)
+	            and MemLocation.MemLocVersion == MEM_LOCATION_VERSION
+	            and MemLocation.TrainType == TrainType(k)
+	            and MemLocation.TrainId == SubSystemId(k)
+	            and MemLocation.SleepAreaId == (TrackMap.ExistZoneLocationIncluded
+	                                                  (SGL_SLEEPING_ZONE, MemLocation(k).Ext2).Id)
+	            and MemLocation.SleepAreaVersion == (TrackMap.ExistZoneLocationIncluded
+	                                                   (SGL_SLEEPING_ZONE, MemLocation(k).Ext2).Version)
+	            and MemLocation.TrainLength == ATPsetting.LocationTrainLength)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-1202], [iTC_CC-SyAD-1203], [iTC_CC-SyAD-1205], [iTC_CC-SyAD-1207], [iTC_CC_ATP_SwHA-0241], [iTC_CC_ATP_SwHA-0242]
+[End]
+[iTC_CC_ATP-SwRS-0645]
+MotionSinceMemorizedLocation，记录自唤醒后运行了多少距离</p>
+<pre><code>	def MotionSinceMemorizedLocation(k):
+	    if (TrainLocatedOnOtherATP(k-1)):
+	        return OtherATP(k).MotionSinceMemLoc
+	    elif (MemorizedLocationAvailable(k)
+	          or not MemLocationNotConfirmed(k-1)):
+	        return 0
+	    else:
+	        return (MotionSinceMemorizedLocation(k-1) + MaximumTrainMotion(k)) 
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1208], [iTC_CC-SyAD-1209]
+[End]
+[iTC_CC_ATP-SwRS-0646]
+TrainPresumablyLocalized，列车使用记忆定位，但还未读到确认信标的状态。待已经通过信标重定位，或者失位后，清除该值。</p>
+<pre><code>	def TrainPresumablyLocalized(k):
+	    if (MemorizedLocationAvailable(k)
+	        and not TrainPresumablyLocalized(k-1)):
+	        return True
+	    elif (TrainPresumablyLocalized(k-1)
+	          and (not TrainLocalized(k-1)
+	               or TrainRealignmentOnBeacon(k-1)):
+	        return False
+	    else:
+	        return TrainPresumablyLocalized(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1207], [iTC_CC-SyAD-1208], [iTC_CC-SyAD-1209]
+[End]</p>

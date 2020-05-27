@@ -1,0 +1,105 @@
+<p>[iTC_CC_ATP-SwRS-0728]
+DateSynchronizationReceived，收到时钟同步消息</p>
+<pre><code>	def DateSynchronizationReceived(lcId, k):
+	    return Message.Received(DateSynchronizationReport(lcId), k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0383]
+[End]
+[iTC_CC_ATP-SwRS-0094]
+DateSynchronisationReportAvailable用于判断当前周期收到的LC安全时间消息是否可用。当满足以下条件时，设置DateSynchronisationReportAvailable为True。否则，设置DateSynchronisationReportAvailable为False。
+本周期收到来自LC的DateSynchronizationReport消息，并且校核字正确；
+如果收到LC消息是LC应答本端CC发出的消息，且满足以下条件时:
+当前ATP时间应大于消息中所带的ccLoopHour;
+并且当前ATP时间与消息中所带的ccLoopHour的差值应当小于之前ATP使用的LC消息时间。
+如果该消息是LC应答远端CC发出的消息，则应满足以下条件:
+当前ATP维护的远端ATP最小时间应大于消息中所带的ccLoopHour;
+并且当前ATP维护的远端ATP最大时间时间与消息中所带的ccLoopHour的差值，应当小于之前ATP使用的LC消息时间。
+DateSynchronisationReportAvailable used to judge whether the LC synchronization message could use or not. When the below conditions fulfilled, DateSynchronisationReportAvailable shall set as True. Otherwise, it set as False.<br />
+If ATP Receives the DateSynchronizationReport message from LC, and the checksum is correct.
+And If the received message is LC to respond the local CC, ATP shall qualify with below conditions:
+The current ATP time is more than ccLoopHour in the message
+The different value between the current ATP time and the ccLoopHour  is less than the LC message time in the previous ATP.
+Or else:, If the received message is LC to respond the remote CC, and it should be qualified with below conditions:
+The minimum time in remote ATP maintained by current ATP is more than the ccLoopHour
+The different value between maximum time in remote ATP maintained by current ATP and the ccLoopHour is less than the LC message time in the previous ATP.</p>
+<pre><code>	def DateSynchronisationReportAvailable(lcId, k):
+	    return Message.Available(DateSynchronizationReceived(lcId, k),
+	                             DateSynchronizationReport(lcId).CcLoopHour,
+	                             ATPsetting.LCloophourValidityTime,
+	                             LastSynchronisationReportAge(lcId, k-1),
+	                             k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0383], [iTC_CC_ATP_SwHA-0019]
+[End]
+[iTC_CC_ATP-SwRS-0095]
+LastSynchronisationReportAge，记录从上次收到LC消息到现在的时间。用于在新收到LC消息时，比较该“新”消息是否的确比之前的消息“新”。即防止在网络传输中发生消息逆序的情况。
+LastSynchronisationReportAge records the age from previous LC message to current cycle. It used to compare whether the new received message is more updating than last recorded one, to prevent the inverse transition in the network communication.</p>
+<pre><code>	def LastSynchronisationReportAge(lcId, k):
+	    return Message.LastAge(DateSynchronisationReportAvailable(lcId, k),
+	                            DateSynchronizationReport(lcId).CcLoopHour,
+	                            LastSynchronisationReportAge(lcId, k-1),
+	                            k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0383]
+[End]
+[iTC_CC_ATP-SwRS-0097]
+LCsynchronisationLoopHourValid，每周期更新LC消息是否还在有效期内。
+LCsynchronisationLoopHourValid will check whether the LC message is still valid.</p>
+<pre><code>	def LCsynchronisationLoopHourValid(lcId, k):
+	    return Message.Valid(DateSynchronizationReport(lcId).CcLoopHour,
+	                         ATPsetting.LCloophourValidityTime,
+	                         k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0384], [iTC_CC_ATP_SwHA-0274]
+[End]
+[iTC_CC_ATP-SwRS-0098]
+对于线路上的LC，ATP需要维护其时间信息GroundTimeReference，结构为ST_GROUND_TIME：</p>
+<p>|Identification|Logical Type|Description|
+|-----|
+|ST_GROUND_TIME|||
+||Time| REF NUMERIC_32 \h NUMERIC_32|以轨旁周期号为单位的时间|
+||Milliseconds| REF NUMERIC_32 \h NUMERIC_32|以毫秒为单位累加轨旁时间|</p>
+<p>时间信息更新规则如下：
+LC消息无效时，设为默认值；
+本周期收到新的可用的LC消息时，更新为消息中的时间；
+否则根据车载和轨旁周期的比值进行累加更新
+ATP shall estimate a time called GroundTimeReference for trackside equipment (ZC /LC). From power-up, GroundTimeReference shall consider invalid. The rules for time information are as follows:
+When LC message invalid, it is set as default value.
+When ATP receives an available LC message, it updates as the time of message.
+Otherwise, it updates the value according to the on board and track side cycle.</p>
+<pre><code>	if (Initialization
+	     or LCsynchronisationLoopHourValid(LcId, k) != True)
+	    GroundTimeReference[LcId].Time = INVALID_LC_DATE
+	    GroundTimeReference[LcId].Milliseconds = 0
+	elif (DateSynchronisationReportAvailable(LcId, k))
+	    GroundTimeReference[LcId].Time(k)= DateSynchronizationReport.Synchrodate
+	    GroundTimeReference[LcId].Milliseconds = 0
+	else:
+	    GroundTimeReference[LcId].Time(k)
+	      = GroundTimeReference[LcId].Time(k-1)
+	       + ((GroundTimeReference[LcId].Milliseconds(k-1)+ ATP_CYCLE_TIME_MS)
+	           / SYNCHRODATE_TIME_UNIT_MS)
+	    GroundTimeReference[LcId].Milliseconds(k)
+	      = ((GroundTimeReference[LcId].Milliseconds(k-1)+ ATP_CYCLE_TIME_MS)
+	          % SYNCHRODATE_TIME_UNIT_MS)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0222], [iTC_CC-SyAD-0381], [iTC_CC-SyAD-0382], [iTC_CC-SyAD-0383], [iTC_CC-SyAD-1025], [iTC_CC_ATP_SwHA-0020], [iTC_CC_ATP_SwHA-0157], [iTC_CC_ATP_SwHA-0274]
+[End]
+NOTES:
+在ATP内部不使用GroundTimeReference参与计算，仅发送给ZC使用。对于每个ZC的LocReport，应当发送其所对应的LC的时间。
+In ATP shall not use GroundTimeReference during the calculation of the internal functions, but only send the info to ZC.</p>

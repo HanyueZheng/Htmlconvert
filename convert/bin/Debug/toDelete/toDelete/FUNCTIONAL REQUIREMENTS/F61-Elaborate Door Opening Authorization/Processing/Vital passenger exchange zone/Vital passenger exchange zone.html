@@ -1,0 +1,98 @@
+<p>对于车站（VPEZ），PSD或紧急逃生区，在线路地图中的开门方向（即站台方向）均是按照上行方向来描述的，其属性有LEFT，RIGHT或BOTH_SIDES。即如果列车向上行方向运营，则开门侧与线路地图中描述的方向相同；而若列车向下行方向运营，则开门侧应与线路地图中的方向相反。对于有LEFT属性的VPEZ，上行列车应开左侧车门，而下行列车应开右侧车门。
+The LEFT or RIGHT, defined as attributes of VPEZ, PSD or EVAC singularities in track map, means the platform is on the left of right side of the train seen as towards the UP orientation.
+但对于列车而言，其开门侧的是通过与车辆接口的A/B侧来对应的。其接口规则为：在列车上，以面对END_1方向的左侧为A侧，右侧为B侧。那么，ATP就需要根据线路地图中的站台方向，列车车头最大定位的运营方向，以及激活的车头，与车辆接口的A/B侧建立对应关系，如Table 512所示。
+Table 512 Convertion from platform side to train side</p>
+<p>|TrainFrontEnd|TrainFrontOrientation|Platform side in TrackMap|Train door side|
+|-----|
+|END_1|UP|LEFT|SideA|
+|||RIGHT|SideB|
+|||BOTH_SIDES|SideA, SideB|
+||DOWN|LEFT|SideB|
+|||RIGHT|SideA|
+|||BOTH_SIDES|SideA, SideB|
+|END_2|UP|LEFT|SideB|
+|||RIGHT|SideA|
+|||BOTH_SIDES|SideA, SideB|
+||DOWN|LEFT|SideA|
+|||RIGHT|SideB|
+|||BOTH_SIDES|SideA, SideB|</p>
+<p>[iTC_CC_ATP-SwRS-0262]
+TrainInterVPEZ_A，列车定位与A侧站台有交集；
+ATP初始化或者失位时，默认设置TrainInterVPEZ_A为False；
+当车身定位（即从车尾最小定位到车头最大定位）与站台区域（线路地图TrackMap中由一对方向相反的SGL_VPEZ奇点组成）有交集，且根据Table 512判断为A侧时，设置TrainInterVPEZ_A为True。
+其他情况，设置TrainInterVPEZ_A为False。
+ATP shall determine whether there are intersection between the range of train locations and the vital passenger exchange zone of the side-A:
+In initialization or train delocalization, set the TrainInterVPEZ_A as False;
+If there are intersection between the range of train locations (from the minimum train tail to the maximum train head) and the vital passenger exchange zone (composing by a pair of SGL_VPEZ singularities with opposite direction in the train map), and the train door side A correspond to the platform according with Table 512, set TrainInterVPEZ_A as True:
+Otherwise, set TrainInterVPEZ_A as False.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0228], [iTC_CC_ATP_SwHA-0104], [iTC_CC_ATP_SwHA-0105], [iTC_CC_ATP_SwHA-0106]
+[End]
+[iTC_CC_ATP-SwRS-0263]
+TrainInterVPEZ_B，列车定位与B侧站台有交集；
+ATP初始化或者失位时，默认设置TrainInterVPEZ_B为False；
+当车身定位（即从车尾最小定位到车头最大定位）与站台区域（线路地图TrackMap中由一对方向相反的SGL_VPEZ奇点组成）有交集，且根据Table 512判断为B侧时，设置TrainInterVPEZ_B为True。
+其他情况，设置TrainInterVPEZ_B为False。
+ATP shall determine whether there are intersection between the range of train locations and the vital passenger exchange zone of the side-B:
+In initialization or train delocalization, set the TrainInterVPEZ_B as False;
+If there are intersection between the range of train locations (from the minimum train tail to the maximum train head) and the vital passenger exchange zone (composing by a pair of SGL_VPEZ singularities with opposite direction in the train map), and the train door side B correspond to the platform according with Table 512, set TrainInterVPEZ_B as True:
+Otherwise, set TrainInterVPEZ_B as False.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0228], [iTC_CC_ATP_SwHA-0104], [iTC_CC_ATP_SwHA-0105], [iTC_CC_ATP_SwHA-0106]
+[End]
+[iTC_CC_ATP-SwRS-0560]
+VPEZid_A，与列车定位相交的A侧VPEZ的编号。
+如果TrainInterVPEZ_A为True，则记录该VPEZ的编号；
+否则，设置为None。
+VPEZid_A records the ID of the VPEZ, which intersected with the location of train on side A.
+If the TrainInterVPEZ_A, set as the ID of this VPEZ.
+Otherwise, set as None.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0228]
+[End]
+[iTC_CC_ATP-SwRS-0561]
+VPEZid_B，与列车定位相交的B侧VPEZ的编号。
+如果TrainInterVPEZ_B为True，则记录该VPEZ的编号。；
+否则，设置为None。
+VPEZid_B records the ID of the VPEZ, which intersected with the location of train on side B.
+If the TrainInterVPEZ_B, then set as the ID of this VPEZ.
+Otherwise, set as None.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0228]
+[End]
+[iTC_CC_ATP-SwRS-0264]
+TrainIncludedInVPEZ_A，列车车身是否完全在A侧VPEZ区域内。
+初始化或者失位时，设置TrainIncludedInVPEZ_A为False；
+如果列车车身（即从车尾最小定位到车头最大定位）完全在VPEZid_A范围中，且TrainInterVPEZ_A为True，则设置TrainIncludedInVPEZ_A为True；
+否则，设置TrainIncludedInVPEZ_A为False.
+TrainIncludedInVPEZ_A, ATP shall determine whether the whole train location belongs to one vital passenger exchange zone VPEZid_A.
+In initialization or train delocalization, set the TrainIncludedInVPEZ_A as False;
+If the range of train locations (from the minimum train tail to the maximum train head) belongs to a VPEZ, and the TrainInterVPEZ_A is True, then ATP shall set TrainIncludedInVPEZ_A as True;
+Otherwise, set TrainIncludedInVPEZ_A as False.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0228], [iTC_CC_ATP_SwHA-0106], [iTC_CC_ATP_SwHA-0267]
+[End]
+[iTC_CC_ATP-SwRS-0265]
+TrainIncludedInVPEZ_B，列车车身是否完全在B侧VPEZ区域内。
+初始化或者失位时，设置TrainIncludedInVPEZ_B为False；
+如果列车车身（即从车尾最小定位到车头最大定位）完全在VPEZid_B范围中，且该TrainInterVPEZ_B为True，则设置TrainIncludedInVPEZ_B为True；
+否则，设置TrainIncludedInVPEZ_B为False。
+TrainIncludedInVPEZ_B, ATP shall determine whether the whole train location belongs to one vital passenger exchange zone VPEZid_B.
+In initialization or train delocalization, set the TrainIncludedInVPEZ_B as False;
+If the range of train locations (from the minimum train tail to the maximum train head) belongs to a VPEZ, and the TrainInterVPEZ_B is True, then ATP shall set TrainIncludedInVPEZ_B as True;
+Otherwise, set TrainIncludedInVPEZ_B as False.
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0228], [iTC_CC_ATP_SwHA-0106], [iTC_CC_ATP_SwHA-0267]
+[End]</p>

@@ -1,0 +1,134 @@
+<p>ATP维护位于另一端车头的冗余ATP的时间，用于监控外部系统发给冗余端ATP消息的有效性。考虑到消息传输延迟，该冗余ATP时间应当在最大最小值范围内。
+The ATP software needs to maintain the redundant ATP cycle time for monitoring the effectiveness of the message sent to the redundant side. Taking into account the transmission delay time, the redundant ATP time should be within the maximum and minimum range.
+[iTC_CC_ATP-SwRS-0615]
+OtherATPmessageReceived，本周期收到冗余ATP消息并校验正确。
+The message transmitted from the distant ATP in the other END shall be protected by check words. And before using the information, ATP shall verify the check words.</p>
+<pre><code>	def OtherATPmessageReceived(k):
+	    return Message.Received(OtherCCsynchroReport,k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0967], [iTC_CC_ATP_SwHA-0243]
+[End]
+[iTC_CC_ATP-SwRS-0078]
+OtherATPmessageAvailable，判断来自冗余ATP消息的有效性：
+OtherATPmessageAvailable, ATP shall judge the effectiveness of message from the redundant ATP, shown as following pseudo-codes:</p>
+<pre><code>	def OtherATPmessageAvailable(k):
+	    return Message.Available(OtherATPmessageReceived(k),
+	                            OtherCCsynchroReport.LatestTimeOtherCore,
+	                            OTHER_ATP_VALIDITY_TIME,
+	                            LastOtherATPmessageAge(k-1),
+	                            k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0967], [iTC_CC_ATP_SwHA-0013], [iTC_CC_ATP_SwHA-0014]
+[End]
+[iTC_CC_ATP-SwRS-0616]
+LastOtherATPmessageAge，获取到的远端ATP消息的存活时间。</p>
+<pre><code>	def LastOtherATPmessageAge(k):
+	    return Message.LastAge(OtherATPmessageAvailable(k),
+	                            OtherCCsynchroReport.LatestTimeOtherCore,
+	                            LastOtherATPmessageAge(k-1),
+	                            k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0967]
+[End]
+[iTC_CC_ATP-SwRS-0540]
+OtherATPmessageValid，接收到的冗余ATP消息是否在有效期内。如果该消息已失效，则设置OtherATPmessageValid为False；否则为True。
+OtherATPmessageValid represents the effectiveness of the messages from redundant ATP. If this message is invalid, ATP will set OtherATPmessageValid as False; otherwise, it is set as True.</p>
+<pre><code>	def OtherATPmessageValid(k):
+	    return Message.Valid(OtherCCsynchroReport.LatestTimeOtherCore,
+	                         OTHER_ATP_VALIDITY_TIME,
+	                         k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source= [iTC_CC-SyAD-0967]
+[End]
+[iTC_CC_ATP-SwRS-0081]
+OtherATPminTime，本端ATP维护的冗余ATP的最小时间。设置规则如下：
+初始化时根据所在车头设置OtherATPminTime为默认值；
+否则，如果本周期收新的冗余ATP消息可用，则更新OtherATPminTime为消息中的currentTime；
+否则，如果冗余ATP消息仍然在有效期内，则对OtherATPminTime每周期加1，若越界则重新等于初始化值；
+否则，如果当前收到的新的冗余ATP消息（但不可用），则将OtherATPminTime更新为消息中的时间；
+其他情况，OtherATPminTime累加1，若越界则重新等于初始化值。
+The OtherATPminTime stands for the local ATP maintained minimum time of the redundant ATP. The setting rule is as following:
+In initialization, ATP set the OtherATPminTime as default value based on the CoreId of the redundant ATP.
+Or else:, if the updating message from the new redundant ATP in this cycle is available, ATP will update OtherATPminTime as the current time in the message.
+Or else:, if the redundant ATP message is still effective, ATP will add 1 in the OtherATPminTime until it is out of bound, and set is as initialization value.
+Or else:, If the received a new redundant ATP message, but it was not available, ATP shall update OtherATPminTime as in the message.
+Otherwise, accumulate OtherATPminTime.</p>
+<pre><code>	if (CoreId == END_1)
+	    if (Initialization)
+	        OtherATPminTime = CC2_INIT_TIME
+	    elif ((OtherATPmessageAvailable(k) == True)
+	            or ((OtherATPmessageValid(k) == False)
+	                  and Exists(OtherCCsynchroReport)))
+	        OtherATPminTime = OtherCCsynchroReport.CurrentTime
+	    else:
+	        if (OtherATPminTime(k-1) &gt;= CC2_MAX_TIME)
+	             OtherATPminTime = CC2_INIT_TIME
+	        else:
+	             OtherATPminTime = OtherATPminTime(k-1) + 1
+	else:
+	    if (Initialization)
+	        OtherATPminTime = CC1_INIT_TIME
+	    elif ((OtherATPmessageAvailable(k) == True)
+	            or ((OtherATPmessageValid(k) == False)
+	                  and Exists(OtherCCsynchroReport)))
+	        OtherATPminTime = OtherCCsynchroReport.CurrentTime
+	    else:
+	        if (OtherATPminTime(k-1) &gt;= CC1_MAX_TIME)
+	             OtherATPminTime = CC1_INIT_TIME
+	        else:
+	             OtherATPminTime = OtherATPminTime(k-1) + 1
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source= [iTC_CC-SyAD-0962]
+[End]
+[iTC_CC_ATP-SwRS-0083]
+OtherATPmaxTime，维护冗余ATP的最大时间。
+The OtherATPmaxTime stands for the local ATP maintained maximum time of the redundant ATP. The rules to update OtherATPmaxTime are similar with OtherATPminTime except that when received a new message from the redundant ATP, the OtherATPmaxTime shall add the maximum transmission delay in network.</p>
+<pre><code>	if (CoreId == END_1)
+	    if (Initialization)
+	        OtherATPmaxTime = CC2_INIT_TIME
+	    elif ((OtherATPmessageAvailable(k) == True)
+	            or ((OtherATPmessageValid(k) == False)
+	                  and Exists(OtherCCsynchroReport)))
+	        OtherATPmaxTime = OtherCCsynchroReport.CurrentTime
+	                                  + LoopHourModularSub(ATPtime(k),
+	                                        OtherCCsynchroReport.LatestTimeOtherCore)
+	    else:
+	        if (OtherATPmaxTime(k-1) &gt;= CC2_MAX_TIME)
+	             OtherATPmaxTime = CC2_INIT_TIME
+	        else:
+	             OtherATPmaxTime = OtherATPmaxTime(k-1) + 1
+	else:
+	    if (Initialization)
+	        OtherATPmaxTime = CC1_INIT_TIME
+	    elif ((OtherATPmessageAvailable(k) == True)
+	            or ((OtherATPmessageValid(k) == False)
+	                  and Exists(OtherCCsynchroReport)))
+	        OtherATPmaxTime = OtherCCsynchroReport.CurrentTime
+	                                  + LoopHourModularSub(ATPtime(k),
+	                                        OtherCCsynchroReport.LatestTimeOtherCore)
+	    else:
+	        if (OtherATPmaxTime(k-1) &gt;= CC1_MAX_TIME)
+	             OtherATPmaxTime = CC1_INIT_TIME
+	        else:
+	             OtherATPmaxTime = OtherATPmaxTime(k-1) + 1
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source= [iTC_CC-SyAD-0962]
+[End]</p>

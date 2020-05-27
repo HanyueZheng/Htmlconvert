@@ -1,0 +1,89 @@
+<p>[iTC_CC_ATP-SwRS-0109]
+VariantGroundAge，将ZC端的变量生存时间转换为CC周期数
+VariantGroundAge shows the survival time of the variants in ZC.</p>
+<pre><code>	def VariantGroundAge(lineSec, k):
+	    VariantGroundAge = round.ceil((EOA_Report.MessageContainerCreationTime
+	                                         - VariantReport(lineSec).CreationTime)
+	                                        * SYNCHRODATE_TIME_UNIT_MS / ATP_CYCLE_TIME_MS)
+	    return VariantGroundAge
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0160]
+[End]
+[iTC_CC_ATP-SwRS-0633]
+VariantReportReceived，收到ZC变量消息</p>
+<pre><code>	def VariantReportReceived(LineSec, k):
+	    return Message.Received(VariantReport(LineSec), k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0159]
+[End]
+[iTC_CC_ATP-SwRS-0110]
+ReceivedVariantReport，存储来自ZC的变量消息，如ST_VARIANT_RCV所示，按照LineSection进行存储：</p>
+<p>|Identification|Logical Type|Description|
+|-----|
+|ST_VARIANT_RCV|||
+||ValidityTime| REF NUMERIC_32 \h  * MERGEFORMAT NUMERIC_32|变量过期时间|
+||Variants| REF ST_VARIANT_REPORT \h  * MERGEFORMAT ST_VARIANT_REPORT|该LineSection的变量|</p>
+<pre><code>	def ReceivedVariantReport(LineSec, k):
+	    if (ZCmessageReady(k)
+	        and VariantReportReceived(LineSec, k)):
+	        if (Message.ReplyLocalCc(ReceivedEOAreport(k).CcLoopHour)):
+	            NewValidity = (ReceivedEOAreport(k).CcLoopHour
+	                            - VariantGroundAge(LineSec, k)
+	                            + ATPsetting.VariantsCBTCvalidityTime)
+	        else:
+	            NewValidity = (ATPtime(k) - VariantGroundAge(LineSec, k)
+	                            + ATPsetting.VariantsCBTCvalidityTime
+	                            - (OtherATPmaxTime(k) - ReceivedEOAreport(k).CcLoopHour))
+	        if (Message.IsMoreRecent(NewValidity, ATPtime(k))
+	            and (Message.IsMoreRecent
+	                 (NewValidity, ReceivedVariantReport[LineSec](k-1).ValidityTime))):
+	            ReceivedVariantReport[LineSec].ValidityTime = NewValidity
+	            ReceivedVariantReport[LineSec].Variants = VariantReport(LineSec, Variants)
+	        else:
+	            ReceivedVariantReport[LineSec] = ReceivedVariantReport[LineSec](k-1)
+	    else:
+	        ReceivedVariantReport[LineSec] = ReceivedVariantReport[LineSec](k-1)
+	    return ReceivedVariantReport
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0159], [iTC_CC-SyAD-0160], [iTC_CC-SyAD-0161], [iTC_CC_ATP_SwHA-0030], [iTC_CC_ATP_SwHA-0031], [iTC_CC-SyAD-0153]
+[End]
+NOTES：
+在CBTC运营模式下，ATP通过解析来自ZC的消息来获取线路上的变量状态。ZC所发送的变量消息以LineSection为单位，可能发送当前ZC区域以及相邻下个ZC区域的LineSection的变量。ATP对于变量的存储和校验以及时间有效性维护，也应以LineSection为单位。
+In the CBTC mode, ATP gets the variants by parse the ZC message. The variants sending from ZC are categorized by line section. Moreover, it will send the line section variants in the current ZC area and the adjacent one. ATP will record and check the variants and maintains the time effectiveness.
+[iTC_CC_ATP-SwRS-0150]
+CBTCvariantValue，维护CBTC下变量的值
+如果变量有效期大于当前时间，则使用该变量；否则为限制状态
+ATP shall maintain the validation of CBTC variants message from ZC. if the validation timeout, ATP should set all CBTC variants to restrictive state.</p>
+<pre><code>	def CBTCvariantValue(Variant, k):
+	    if (ReceivedVariantReport(Variant.LineSec.Id, k).ValidityTime &gt; ATPtime(k)):
+	        return ReceivedVariantReport(Variant.LineSec.Id, k).Status(Variant.LineSec.Index)
+	    else:
+	        return False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0162], [iTC_CC-SyAD-0294], [iTC_CC-SyAD-0299], [iTC_CC-SyAD-0159], [iTC_CC_ATP_SwHA-0031]
+[End]
+[iTC_CC_ATP-SwRS-0634]
+VariantValue，统一CBTC和BM下的变量</p>
+<pre><code>	def VariantValue(Variant, k):
+	    if (BlockModeUsed(k)):
+	        return BMvariantValue(Variant, k)
+	    else:
+	        return CBTCvariantValue(Variant, k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0294], [iTC_CC-SyAD-0295], [iTC_CC-SyAD-0296], [iTC_CC-SyAD-0299]
+[End]</p>

@@ -1,0 +1,7 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|MaxCogCalibration|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|MinCogCalibration|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

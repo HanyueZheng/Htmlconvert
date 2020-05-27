@@ -1,0 +1,119 @@
+﻿
+根据项目配置的强制限制、强制允许以及信号机和Overlap自身变量状态的不同，ATP的能量监控点也不同，如所示。
+Table 59 Energy constraint point of signal and overlap end
+
+|Signal|Overlap|Constraint Point|
+|-----|
+|CoercedRestrictive|VariantValue|CoercedPermissive|VariantValue||
+|True|——|True|——|SGL_OVERLAP_END|
+|True|——|False|True|SGL_OVERLAP_END|
+|True|——|False|False|SGL_SIGNAL|
+|False|True|——|——|——|
+|False|False|True|——|SGL_OVERLAP_END|
+|False|False|False|True|SGL_OVERLAP_END|
+|False|False|False|False|SGL_SIGNAL|
+
+信号机：
+如果在车头最大定位和EB实际施加位置之间存在限制状态的信号机时，ATP需将其作为安全速度限制区域处理，其限速值为0；
+如果在EBA点下游存在限制状态的信号机且未建立Overlap，其限速为0。
+[iTC_CC_ATP-SwRS-0701]
+ZoneVSLnotExceedSignal，信号机作为区域型限速的情形
+```
+	def ZoneVSLnotExceedSignal(k):
+	    for Sig in TrackMap.AllSingsInZone(SGL_SIGNAL, TrainFrontLocation(k).Max, X2EbApplied(k)):
+	        if ((CoercedRestrictive(Sig.NotCoercedRestrictive, k)
+	             or not VariantValue(Sig.Variant, k))
+	            and (not CoercedPermissive(Sig.CoercedPermissive, k)
+	                 and not VariantValue(Sig.OverlapVariant, k))):
+	            return False
+	        else: 
+	            continue
+	    else:
+	        return True
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0294], [iTC_CC-SyAD-0295], [iTC_CC-SyAD-0300], [iTC_CC-SyAD-1286], [iTC_CC_ATP_SwHA-0258]
+[End]
+[iTC_CC_ATP-SwRS-0702]
+PointVSLnotExceedSignal，信号机作为点型限速的情形
+```
+	def PointVSLnotExceedSignal(k):
+	    for Sig in TrackMap.AllSingsInZone(SGL_SIGNAL,
+	                                TrackMap.CalculateZoneBorder(TrainFrontEnd(k).Max, X2EbApplied(k)),
+	                                ATPsetting.EOAmaxDistance)):
+	        if ((CoercedRestrictive(Sig.NotCoercedRestrictive, k)
+	             or not VariantValue(Sig.Variant, k))
+	            and (not CoercedPermissive(Sig.CoercedPermissive, k)
+	                 and not VariantValue(Sig.OverlapVariant, k))):
+	            and TrainEnergy(k) >= (Energy.AccumulationPotentialEnergy
+	                                      (TrackMap.CalculateZoneBorder(TrainFrontEnd(k).Max,
+	                                                                          X2EbApplied(k)),
+	                                      Sig.Location))):
+	            return False
+	        else:
+	            continue
+	    else:
+	        return True
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0294], [iTC_CC-SyAD-0295], [iTC_CC-SyAD-0300], [iTC_CC-SyAD-0311], [iTC_CC-SyAD-0314], [iTC_CC-SyAD-1286], [iTC_CC_ATP_SwHA-0258]
+[End]
+Overlap终点：
+如果在车头最大定位下游存在已建立Overlap的信号机，且相关的Overlap终点在列车车头最大定位下游和EB实际施加位置之间时，ATP将该Overlap终点作为安全速度限制区域处理，限速值为0；
+如果在车头最大定位下游存在已建立Overlap的信号机，且相关的Overlap终点在EBA点下游，则该Overlap终点被视为安全速度限制点，其限速为0 。
+[iTC_CC_ATP-SwRS-0703]
+ZoneVSLnotExceedOverlap，Overlap作为区域型限速的情形
+```
+	def ZoneVSLnotExceedOverlap(k):
+	    for Overlap in TrackMap.AllSingsInZone(SGL_OVERLAP_END, TrainFrontLocation(k).Max,
+	                                                   X2EbApplied(k)):
+	        Signal = TrackMap.ExistSingBtwTwoLocs(SGL_SIGNAL, TrainFrontLocation(k).Max,
+	                                                     Overlap.Location)
+	        if (Signal is not None
+	            and (CoercedRestrictive(Signal.NotCoercedRestrictive, k)
+	                 or not VariantValue(Signal.Variant, k))
+	            and (CoercedPermissive(Signal.CoercedPermissive, k)
+	                 or VariantValue(Overlap.Variant, k))):
+	            return False
+	        else: 
+	            continue
+	    return True
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0294], [iTC_CC-SyAD-0295], [iTC_CC-SyAD-0300], [iTC_CC-SyAD-1187], [iTC_CC_ATP_SwHA-0258]
+[End]
+[iTC_CC_ATP-SwRS-0704]
+PointVSLnotExceedOverlap，Overlap作为点型限速的情形
+```
+	def PointVSLnotExceedOverlap(k):
+	    for Overlap in (TrackMap.AllSingsInZone(SGL_OVERLAP_END, 
+	                               TrackMap.CalculateZoneBorder(TrainFrontEnd(k).Max, X2EbApplied(k)),
+	                               ATPsetting.EOAmaxDistance)):
+	        Signal = (TrackMap.ExistSingBtwTwoLocs(SGL_SIGNAL,
+	                          TrackMap.CalculateZoneBorder(TrainFrontEnd(k).Max, X2EbApplied(k)),
+	                          Overlap.Location))
+	        if (Signal is not None
+	            and (CoercedRestrictive(Signal.NotCoercedRestrictive, k)
+	                 or not VariantValue(Signal.Variant, k))
+	            and (CoercedPermissive(Signal.CoercedPermissive, k)
+	                 or VariantValue(Overlap.Variant, k))
+	            and TrainEnergy(k) >= (Energy.AccumulationPotentialEnergy
+	                                      (TrackMap.CalculateZoneBorder(TrainFrontEnd(k).Max,
+	                                                                          X2EbApplied(k)),
+	                                       Overlap.Location))):
+	            return False
+	        else:
+	            continue
+	    return True
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0294], [iTC_CC-SyAD-0295], [iTC_CC-SyAD-0300], [iTC_CC-SyAD-0311], [iTC_CC-SyAD-0314], [iTC_CC-SyAD-1187], [iTC_CC_ATP_SwHA-0258]
+[End]

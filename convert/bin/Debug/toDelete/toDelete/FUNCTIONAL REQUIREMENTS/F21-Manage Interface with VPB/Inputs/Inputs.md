@@ -1,0 +1,10 @@
+﻿
+
+|Name|Nature|Provided by|
+|-----|
+|CBKRead|External| REF _Ref379961811 \h Interface with VPB|
+|CBKWrite|External| REF _Ref379961811 \h Interface with VPB|
+|ImmediateNb|Internal| REF _Ref345055971 \h F82-Manage Vital Time|
+|VitalTime|Internal| REF _Ref345055971 \h F82-Manage Vital Time|
+|WheelFilteredStopped|Internal| REF _Ref345055668 \h F22-Monitor the Odometer|
+

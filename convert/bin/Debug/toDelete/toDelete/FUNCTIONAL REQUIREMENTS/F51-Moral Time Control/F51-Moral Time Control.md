@@ -1,0 +1,3 @@
+﻿
+本模块用于监控列车是否在模糊时间监控区停留过长时间。
+This module monitors whether the train is staying in the fuzzy time area longer than expected. 

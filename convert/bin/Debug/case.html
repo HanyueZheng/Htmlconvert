@@ -1,0 +1,56 @@
+﻿<body><h1 id="h1-1-1-3"><a name="1.1.3" class="reference-link"></a><span class="header-link octicon octicon-link"></span>1</h1><p>ATP软件每周期在主任务中，根据上周期各中断锁存的编码里程计信息，对里程计所在车轮的动力学参数进行计算。即根据寄存器读值，判断本周期转过的齿数；如果未检测到里程计转动，则需进行传感器测试的判断，并据此检测车轮是否完全静止。根据编码里程计的设计，在传感器测试中不可能发生三路全导通或者堵塞的状态。<br>In every cycle of main task, according to coded odometer information of each interrupt latch in the last cycle, ATP software shall calculate the kinematic parameters of the wheel. That is to say, ATP shall judge the cog numbers in this cycle according to the value in the register. If ATP did not detect the move of odometer, it will check whether the wheel is completely static based on the sensor testing. According to the design of coded odometer, it is impossible that three sensors are in conduct or blocked at the same time.</p><h2 id="h1-1-1-3"><a name="1.1.3" class="reference-link"></a><span class="header-link octicon octicon-link"></span>1.1</h2><p>ATP软件每周期在主任务中，根据上周期各中断锁存的编码里程计信息，对里程计所在车轮的动力学参数进行计算。即根据寄存器读值，判断本周期转过的齿数；如果未检测到里程计转动，则需进行传感器测试的判断，并据此检测车轮是否完全静止。根据编码里程计的设计，在传感器测试中不可能发生三路全导通或者堵塞的状态。<br>In every cycle of main task, according to coded odometer information of each interrupt latch in the last cycle, ATP software shall calculate the kinematic parameters of the wheel. That is to say, ATP shall judge the cog numbers in this cycle according to the value in the register. If ATP did not detect the move of odometer, it will check whether the wheel is completely static based on the sensor testing. According to the design of coded odometer, it is impossible that three sensors are in conduct or blocked at the same time.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Nature</th>
+<th>Provided by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ATPsetting</td>
+<td>Internal</td>
+<td>F11-Acquire Configuration Data</td>
+</tr>
+<tr>
+<td>CoreId</td>
+<td>Internal</td>
+<td>F11-Acquire Configuration Data</td>
+</tr>
+<tr>
+<td>IdenticalLockedOdometer</td>
+<td>Internal</td>
+<td>F21-Manage Interface</td>
+</tr>
+</tbody>
+</table>
+<p>[iTC_CC_ATP-SwRS-0592]<br>CompCogCode，ATP软件需要根据编码里程计的码盘特性和旋转方向，计算8个比特的期望齿号值。<br>    当里程计初始化成功时，设置CompCogCode为初始的CogCode。<br>    此后，对中断中转过的每个齿：</p>
+<ul>
+<li>如果相邻中断齿数递增，期望齿号由高位向低位右移1个比特，将新的比特C4array[C4ArrayIndex]放在最高位，并更新C4ArrayIndex。</li><li>如果相邻中断齿数递减，期望齿号由低位向高位左移1个比特，将新的比特C4array[C4ArrayIndex]放在最低位，并更新C4ArrayIndex。<br>其中，C4ArrayIndex为当前对应的齿数索引，取值为0~99。C4array[C4ArrayIndex]为当前齿数对应码盘的通堵状态，1表示导通，0表示堵住，详见[REF4]。</ul>
+<p>The ATP software needs to calculate the expected cog code with 8 bits, according to the encoding characteristic of the disc code and the direction of odometer rotation.<br>    When the odometer initialization, the expected CompCogCode shall be set as initial CogCode;<br>    Since then, for one cog rotated in interrupt, the corresponded bit shall be shift as following rules:</p>
+<ul>
+<li>if the cog increased in adjacent interrupts, the CompCogCode shall be shift a bit toward right from high to low; shift out the lowest one and set the new highest bit as C4array[C4ArrayIndex], and update C4ArrayIndex.</li><li>otherwise, if the cog decreased, the CompCogCode shall be shift a bit toward left from low to high; shift out the highest bit and set the C4array[C4ArrayIndex] as the new lowest one, and update C4ArrayIndex accordingly.</li><br>In which, C4ArrayIndex is the current cog index, ranging from 0 to 99. C4array[C4ArrayIndex] is the array of disc codes, “1” meaning conduction and “0” indicating blocked, for details see [REF4].<br>#Category=Functional<br>#Contribution=SIL4<br>#S#Allocation=ATP Software<br>#Source=[iTC_CC-SyAD-0013]<br>[End]</ul>
+<p>[iTC_CC_ATP-SwRS-0164]<br>OdometerCogPositionReady，根据IdenticalLockedOdometer中锁存各中断的CogCode和ATP主任务计算的期望齿号CompCogCode是否匹配，判断里程计齿数齿号的可用OdometerCogPositionReady状态。<br>    初始化时，设置OdometerCogPositionReady为False。<br>    否则，如果之前OdometerCogPositionReady为False，则只有当ATP检测到车轮反转或者停转（WheelFilteredStopped）后重新转动，使得里程计朝同一个方向连续转过8个齿后，初始化齿数和齿号的匹配关系，并设置OdometerCogPositionReady为True。<br>    否则，如果本周期某中断中的期望齿号CompCogCode与读到的齿号CogCode不相等，则设置OdometerCogPositionReady为False<br>    其他情况，保持OdometerCogPositionReady不变。<br>ATP determines the odometer position ready according to the matching of the CompCogCode and CogCode locked in each interrupt.<br>    In initialization, the OdometerCogPositonReady shall be False;<br>    Or else:, if the OdometerCogPositonReady was False, then only after the odometer rotated reversely or WheelFilteredStopped and re-turned continuous toward the same direction after 8 cogs, ATP shall re-initialize the Counter-Code matching relation and set OdometerCogPositonReady as True;<br>    Or else:, if CogCode is different with CompCogCode in one of interrupt of the cycle, ATP shall set OdometerCogPositonReady as False;<br>    Otherwise, ATP keep OdometerCogPositonReady unchanging.<br>#Category=Functional<br>#Contribution=SIL4<br>#S#Allocation=ATP Software<br>#Source=[iTC_CC-SyAD-0013], [iTC_CC-SyAD-0960], [iTC_CC_ATP_SwHA-0053]<br>[End]</p>
+<p>[iTC_CC_ATP-SwRS-0165]<br>TeethCounter，ATP根据IdenticalLockedOdometer中锁存的最后一个中断的CogCounter变化值，更新TeethCounter，作为主任务使用的里程计齿数值。TeethCounter的计算应考虑里程计安装方向和CogCounter的寄存器取值范围。<br>TeethCounter used as the odometer cog value in one deferred task, which is the difference of the CogCounter in the last interrupt of adjacent cycle. The calculation of the TeethCounter shall consider the installation direction of the odometer and the register range of the CogCounter.</p>
+<p>‘’’</p>
+<pre><code>TeethCounter(k)= TeethCounter(k-1)
++ (IdenticalLockedOdometer[ATP_INTERRUPT_NB - 1].CogCounter(k)
+     - IdenticalLockedOdometer[ATP_INTERRUPT_NB - 1].CogCounter(k-1))
+   * ATPsetting.CCcoreOdoCogIncreasing[CoreId]
+</code></pre><p>‘’’<br>#Category=Functional<br>#Contribution=SIL4<br>#S#Allocation=ATP Software, Vital Embedded Setting<br>#Source=[iTC_CC-SyAD-0130], [iTC_CC-SyAD-0135], [iTC_CC_ATP_SwHA-0181]<br>[End]</p>
+<p>NOTES:<br>TeethCounter是有符号值。如果TeethCounter大于0，则表示里程计相对于初始位置向列车END_1方向转动；反之如果小于0，则表示里程计相对于初始位置向列车END_2方向转动。<br>TeethCounter is a signed value. If TeethCounter greater than 0, then means the odometer rotating toward to the train END_1 direction; other hand, if it less than 0, then means the odometer rotating toward to the END_2.</p>
+<p>[iTC_CC_ATP-SwRS-0166]<br>CogPositionBeforeTopLoc，CogPositionAfterTopLoc，如果本周期读到信标，则通过IdenticalLockedOdometer计算读到信标瞬间的里程计齿数信息：<br>    使用Top-loc发生的前一个中断的CogCounter来更新CogPositionBeforeTopLoc；<br>    使用Top-loc发生时中断的CogCounter来更新CogPositionAfterTopLoc；<br>其他情况，CogPositionBeforeTopLoc和CogPositionAfterTopLoc保持不变。<br>If a beacon with top-loc received in this cycle, ATP shall record the cog position of the interrupt when and just before the top-loc happen:<br>    CogPositionBeforeTopLoc, the CogCounter in the interrupt just before the top-loc happen;<br>    CogPositionAfterTopLoc, the CogCounter in the interrupt when the top-loc happen.<br>‘’’<br>CogPositionBeforeTopLoc(k)<br> = TeethCounter(k-1)</p>
+<ul>
+<li>((IdenticalLockedOdometer[i-1].CogCounter(k)<ul>
+<li>IdenticalLockedOdometer[ATP_INTERRUPT_NB-1].CogCounter(k-1))</li></ul>
+<ul>
+<li>ATPsetting.CCcoreOdoCogIncreasing[CoreId]))<br>CogPositionAfterTopLoc(k)<br>= TeethCounter(k-1)</ul>
+</li><li>((IdenticalLockedOdometer[i].CogCounter(k)<ul>
+<li>IdenticalLockedOdometer[ATP_INTERRUPT_NB-1].CogCounter(k-1))<ul>
+<li>ATPsetting.CCcoreOdoCogIncreasing[CoreId]))<br>‘’’<br>其中i表示锁存收到Top-loc信号的那个中断。如果上下CPU收到Top-loc相差1个中断，则使用较早的的中断作为计算CogPositionBeforeTopLoc的依据，而较迟的那个中断作为计算CogPositionAfterTopLoc的依据。<br>Which, i means the interrupt received top-loc signal.<br>#Category=Functional<br>#Contribution=SIL4<br>#S#Allocation=ATP Software, Vital Embedded Setting<br>#Source=[iTC_CC-SyAD-0197], [iTC_CC_ATP_SwHA-0059]<br>[End]</ul>
+</li></ul>
+</li></ul>
+<h2 id="h1-1-1-3"><a name="1.2" class="reference-link"></a><span class="header-link octicon octicon-link"></span>1.2</h2><p>ATP软件每周期在主任务中，根据上周期各中断锁存的编码里程计信息，对里程计所在车轮的动力学参数进行计算。即根据寄存器读值，判断本周期转过的齿数；如果未检测到里程计转动，则需进行传感器测试的判断，并据此检测车轮是否完全静止。根据编码里程计的设计，在传感器测试中不可能发生三路全导通或者堵塞的状态。<br>In every cycle of main task, according to coded odometer information of each interrupt latch in the last cycle, ATP software shall calculate the kinematic parameters of the wheel. That is to say, ATP shall judge the cog numbers in this cycle according to the value in the register. If ATP did not detect the move of odometer, it will check whether the wheel is completely static based on the sensor testing. According to the design of coded odometer, it is impossible that three sensors are in conduct or blocked at the same time.</p>
+
+</body>

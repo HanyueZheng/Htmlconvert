@@ -1,0 +1,27 @@
+<p>里程计外圈均匀分布着100个齿，每个齿的齿距就代表着车轮周长的1/100，因此齿距可以通过列车车轮的轮径计算出来。车辆属性中理论的最大最小轮径值就对应着理论的最大最小齿距值。在刚上电时，ATP根据理论最大最小齿距计算列车位移。当列车通过线路上一对固定距离（该距离描述在线路地图中）的信标来对实际齿距进行计算，并将结果通过第三个信标进行检验。如果检验成功，则ATP使用该齿距值作为运动学计算的依据。
+There are 100 cogs evenly distributed in the outer ring of odometer, and each cog’s length represented the 1/100 of wheel perimeter, so we can calculate the cog’s length by the wheel diameter. Theoretically, the biggest and the smallest wheel diameter is corresponded to the cog length. When ATP is powered up, it will calculate the train displacement according to the theoretical cog length. When the train passed the fixed distance (this distance described in the track map), ATP will calibrate the real cog length according to the beacon of this fixed distance, and verify this calibration through the third beacon. If the calculation is correct, ATP will use this cog length for the kinematic calculation.
+[iTC_CC_ATP-SwRS-0192]
+如Figure 510所示，里程计齿距校准CalibrationState分为以下四个状态:
+CALI_WAITING, 未校准或者未成功校准，等待经过MTIB1后进行校准的状态;
+CALI_MEASURING, 经过MTIB1,还未到MTIB2, 正在校准的状态；
+CALI_VALIDATING, 经过MTIB2，还未到下个验证RB的状态；
+CALI_COMPLETED, 经过验证信标RB，并验证成功，本次校准完成。
+As shown in Figure 510, the odometer calibration state divides into the following four states:
+CALI_WAITING, the state of not calibrated or calibration has failed, waiting for read the MTIB1 beacon.
+CALI_MEASURING, after read MTIB1 and waiting for read MTIB2.
+CALI_VALIDATING, after read MTIB2 and waiting for the verifying RB.
+CALI_COMPLETED, calibration has been verified by the RB successfully.
+齿距校准过程中需更新下列信息：
+MaxCogCalibration, 最大齿距
+MinCogCalibration, 最小齿距
+CalibrationState, 齿距校准状态
+The following variables shall update during calibration:
+MaxCogCalibration, the overestimated calibration for each cog;
+MinCogCalibration, the underestimated calibration for each cog;
+CalibrationState, the state of calibration.
+Figure 510 Processing of calibration
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0132], [iTC_CC_ATP_SwHA-0067]
+[End]</p>

@@ -1,0 +1,145 @@
+﻿
+在非RM模式，或BLOCK模式要求与PSD进行通信的条件下， ATP应当确保在PSD开启，或者发送PSD开启命令时，列车不能发生运动，否则将触发EB。
+In the non-RM mode, or in block mode with PSD communication, ATP shall guarantee the train cannot move while the PSD has opened or the opening PSD order is sending. Otherwise, ATP shall trigger EB.
+[iTC_CC_ATP-SwRS-0341]
+InhibitControlPSDstatus，项目可配置不监控PSD状态的条件。
+The conditions ATP does not control PSD can be configured by project.
+```
+	def InhibitControlPSDstatus(k):
+	    return Offline.GetInhibitControlPSDstatus(k) 
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1221], [iTC_CC-SyAD-1230], [iTC_CC-SyAD-1304], [iTC_CC_ATP_SwHA-0269]
+[End]
+[iTC_CC_ATP-SwRS-0342]
+AllPSDclosedAndLocked的判断，上周期或本周期停车，若有PSD且已获取其状态为关闭。
+If the train stopped or just started moving, and the status of all aligned PSD are closed, ATP shall consider the AllPSDclosedAndLocked is True.
+```
+	AllPSDclosedAndLocked(k)
+	 = ((TrainLocalized(k) == True)
+	    and ((TrainFilteredStopped(k) == True)
+	          or (TrainFilteredStopped(k-1) == True))
+	    and ((PSDid_A(k) == 0) and (PSDid_B(k) == 0))
+	          or ((PSDid_A(k) != 0) and (PSDzoneStatus_A.AllPSDclosed(k) == True)
+	               and (PSDid_B(k) == 0))
+	          or ((PSDid_B(k) != 0) and (PSDzoneStatus_B.AllPSDclosed(k) == True)
+	               and (PSDid_A(k) == 0))
+	          or ((PSDid_A(k) != 0) and (PSDzoneStatus_A.AllPSDclosed(k) == True)
+	               and (PSDid_B(k) != 0) and (PSDzoneStatus_B.AllPSDclosed(k) == True)))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0267], [iTC_CC_ATP_SwHA-0220]
+[End]
+[iTC_CC_ATP-SwRS-0750]
+NoDangerforUnexpectedPSDopening，判断在发车时是否PSD为开门状态.
+ATP shall determine whether the train starts moving without the aligned PSD closed.
+```
+	def NoDangerForUnexpectedPSDopening(k):
+	    return (not (AlignPSDzone_A(k) or AlignPSDzone_B(k))
+	            or AllPSDclosedAndLocked(k)
+	            or TrainFilteredStopped(k)
+	            or not TrainFilteredStopped(k-1))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0266], [iTC_CC_ATP_SwHA-0144]
+[End]
+[iTC_CC_ATP-SwRS-0343]
+EBforUnexpectedPSDopening，PSD区域内刚发车时PSD门开，则输出EB.
+If in charge of the PSD control, ATP shall trigger emergency brake when train just started moving but PSD does not closed.
+```
+	def EBforUnexpectedPSDopening(k):
+	    return (not NoDangerForUnexpectedPSDopening(k)
+	            and not InhibitControlPSDstatus(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0266], [iTC_CC-SyAD-1230], [iTC_CC_ATP_SwHA-0144]
+[End]
+[iTC_CC_ATP-SwRS-0803]
+NoDangerForPSDnotClosedAndLocked，列车停在PSD区域，且PSD状态为限制时，该值为假；否则，该值为真。
+```
+	def NoDangerForPSDnotClosedAndLocked(k):
+	    return not (TrainFilteredStopped(k)
+	                 and not AllPSDclosedAndLocked(k)
+	                 and (AlignPSDzone_A(k) or AlignPSDzone_B(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0230]
+[End]
+[iTC_CC_ATP-SwRS-0344]
+PBforPSDnotClosedAndLocked，车停在PSD区域内，PSD开，且未限制监控该功能时，要求输出ZVRD。
+If one of the statuses of the aligned PSD does not closed when train stopped, ATP shall trigger parking brake.
+```
+	def PBforPSDnotClosedAndLocked(k):
+	    return (not NoDangerForPSDnotClosedAndLocked(k)
+	     and not InhibitControlPSDstatus(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0230], [iTC_CC-SyAD-1221], [iTC_CC_ATP_SwHA-0145]
+[End]
+[iTC_CC_ATP-SwRS-0345]
+EBforPBnotAppliedDueToPSD，由于PSD开而施加PB，但是未采到ZVBA。
+If ATP has triggered the parking brake for the PSD opening, but it does not applied by the rolling stock, ATP shall trigger the emergency brake.
+```
+	EBforPBnotAppliedDueToPSD(k)
+	 = ((PBforPSDnotClosedAndLocked(k) == True)
+	    and (TrainParkingBrakeApplied(k) != True))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0233], [iTC_CC-SyAD-0234], [iTC_CC-SyAD-0235], [iTC_CC_ATP_SwHA-0146]
+[End]
+[iTC_CC_ATP-SwRS-0346]
+PSDopeningCommandValid，开门命令是否在有效期内.
+如果本周期PSDopeningCommand为True，则设置本周期PSDopeningCommandValid为True；
+否则如果上周期PSDopeningCommand为True而本周期变为False，则在接下来的ATPsetting. PSDopeningCommandValidityTime周期内：
+如果PSDopeningCommand为False，仍保持PSDopeningCommandValid为True；
+如果PSDopeningCommand为True，则当其变为False后重新计时。
+其他情况，设置PSDopeningCommandValid为False。
+ATP shall monitor the PSD opening command whether valid by the following rules:
+If the PSD opening command is True in the current cycle, ATP consider this command is valid;
+Or else:, if the PSD opening command become from True to False, ATP shall start to counter the cycles:
+If the PSD opening command has become False and has lasted more than ATPsetting.PSDopeningCommandValidityTime, then ATP shall consider the PSD opening command as invalid;
+Or else:, ATP still consider the PSD opening command as valid.
+Otherwise, ATP consider the PSD opening command as invalid.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0230], [iTC_CC_ATP_SwHA-0140]
+[End]
+[iTC_CC_ATP-SwRS-0347]
+InhibitPSDopeningSupervisedByATP，是否禁止ATP监控发送屏蔽门开启指令时输出PB。
+```
+	def InhibitPSDopeningSupervisedByATP(k):
+	    return Offline.GetInhibitPSDopeningSupervisedByATP(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1222], [iTC_CC-SyAD-1305]
+[End]
+[iTC_CC_ATP-SwRS-0348]
+PBforPSDopenedAndSupervisedByATP，在PSD开门过程中输出PB
+If ATP needs to supervise the PSD opening status, ATP shall trigger parking brake when the PSD opening command is valid.
+```
+	def PBforPSDopenedAndSupervisedByATP(k):
+	    return (PSDopeningCommandValid(k)
+	            and not InhibitPSDopeningSupervisedByATP) 
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0230], [iTC_CC-SyAD-1222]
+[End]

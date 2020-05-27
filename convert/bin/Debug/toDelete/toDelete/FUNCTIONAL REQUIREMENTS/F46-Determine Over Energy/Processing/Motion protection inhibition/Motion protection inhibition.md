@@ -1,0 +1,12 @@
+﻿
+[iTC_CC_ATP-SwRS-0064]
+MotionProtectionInhibition，表示ATP不负责列车位置的监控。其状态来自于项目可配置的列车输入采集。
+```
+	def MotionProtectionInhibition(k):
+	    return Offline.GetMotionProtectionInhibition(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0218], [iTC_CC-SyAD-0339], [iTC_CC-SyAD-0343], [iTC_CC-SyAD-1003], [iTC_CC-SyAD-1285], [iTC_CC-SyAD-1306], [iTC_CC-SyAD-0802], [iTC_CC_ATP_SwHA-0200]
+[End]

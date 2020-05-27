@@ -1,0 +1,7 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|PointVSLNotExceed|√|√| REF BOOLEAN BOOLEAN|
+|ZoneVSLNotExceed|√|√| REF BOOLEAN BOOLEAN|
+

@@ -1,0 +1,28 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|AverageWheelAcceleration|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|FilteredWheelAcceleration|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|InstantaneousWheelAcceleration|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|MaxMotionDuringBrakingOrSliding|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|MaxMotionOdometerSignChanged|√|√| REF BOOLEAN BOOLEAN|
+|MotionUnderEstimationState|√|√| REF ENUM_SLIPPING_STATE \h ENUM_SLIPPING_STATE|
+|OdometerAxleMotorized|√|√| REF BOOLEAN BOOLEAN|
+|OverestimatedMotionMax|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|OverestimatedMotionMin|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|SlidingEnded|√|√| REF BOOLEAN BOOLEAN|
+|SlidingExcess|√|√| REF BOOLEAN BOOLEAN|
+|SlipSlideModellingFault|√|√| REF BOOLEAN BOOLEAN|
+|SlippingEnded|√|√| REF BOOLEAN BOOLEAN|
+|SlippingExcess|√|√| REF BOOLEAN BOOLEAN|
+|StartBrakingMovementMax|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|StartBrakingMovementMin|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|StartMotoringMovementMin|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|StartSlidingSpeed|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|StartSlippingSpeed|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|TimeInSliding|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|TimeInSlipping|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|UnderestimatedMotionMax|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|UnderestimatedMotionMin|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

@@ -1,0 +1,12 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|AxleLockedDetectionAvailable|√|√| REF BOOLEAN BOOLEAN|
+|AxlePossiblyLocked|√|√| REF BOOLEAN BOOLEAN|
+|OdometerRef_1|√|√| REF ST_ODOMETER_REF \h ST_ODOMETER_REF|
+|OdometerRef_2|√|√| REF ST_ODOMETER_REF \h ST_ODOMETER_REF|
+|OdometerSpeedUnderThreshold|√|√| REF BOOLEAN BOOLEAN|
+|ReferenceSpeedUnderThreshold_1|√|√| REF BOOLEAN BOOLEAN|
+|ReferenceSpeedUnderThreshold_2|√|√| REF BOOLEAN BOOLEAN|
+

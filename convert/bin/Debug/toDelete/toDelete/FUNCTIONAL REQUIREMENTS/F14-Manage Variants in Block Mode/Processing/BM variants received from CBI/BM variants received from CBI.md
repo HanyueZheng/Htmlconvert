@@ -1,0 +1,148 @@
+﻿
+在有无线通信的增强型后备模式下，ATP可以与联锁通过SACEM协议通信，直接获取该联锁管辖的设备变量状态：
+对于联锁发送的变量与ZC发送的变量，在ATPsetting中定义有对应关系，可以通过联锁变量索引ZC变量。
+ATP应管理联锁的变量状态，维护其时间有效性。联锁变量的时间有效期分为两种：一种是长有效期，用于信号机和道岔位置的状态判断；一种是短有效期，用于保护区状态的判断。
+[iTC_CC_ATP-SwRS-0619]
+BMvariantValidLastRisingAge, 记录从选择BM模式到当前经过的时间
+```
+	def BMvariantValidLastRisingAge(k):
+	    if (not BMvariantValidWhileTemporallyValid(k)):
+	        BMvariantValidLastRisingAge = 0
+	    else:
+	        BMvariantValidLastRisingAge = BMvariantValidLastRisingAge(k-1) + 1
+```
+如果未选择BM模式，则不允许使用来自CBI的变量，因此应设置初值为0，使得不可能有来自CI消息的age小于0
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1175]
+[End]
+[iTC_CC_ATP-SwRS-0620]
+CBIvariantReportReceived，ATP软件收到CCNV转发的“CBI variant report”消息，并安全校核字校验正确。
+```
+	def CBIvariantReportReceived(cbi, k):
+	    return Message.Received(CBIvariantReport(cbi), k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1171]
+[End]
+[iTC_CC_ATP-SwRS-0621]
+CBIvariantReportAvailable，联锁消息可用
+```
+	def CBIvariantReportAvailable(cbi, k):
+	    return Message.Available(CBIvariantReportReceived(cbi, k),
+	                                  CBIvariantReport(cbi).CcLoopHour,
+	                                  ATPsetting.VariantsBMlowValidityTime,
+	                                  min(CBIvariantReportLastAge(cbi, k-1),
+	                                       CBIminProductionAge(cbi, k-1),
+	                                       BMvariantValidLastRisingAge(k)),
+	                                       k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1173]
+[End]
+[iTC_CC_ATP-SwRS-0622]
+CBIvariantReportLastAge，记录最新收到的联锁消息已存活的时间。
+```
+	def CBIvariantReportLastAge(cbi, k):
+	    return Message.LastAge(CBIvariantReportAvailable(cbi, k),
+	                            CBIvariantReport(cbi).CcLoopHour,
+	                            CBIvariantReportLastAge(cbi, k-1),
+	                            k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1173]
+[End]
+[iTC_CC_ATP-SwRS-0623]
+BMcbiVariants, 当来自CBI的变量可用时，存储CBI变量；其他时候保持不变。
+```
+	def BMcbiVariants(cbi, k):
+	    if (CBIvariantReportAvailable(cbi, k)):
+	        for idx in range(0, CBIvariantReport.NumberOrVariants):
+	            BMcbiVariants[cbi].Variants[idx] = CBIvariantReport.Variant[idx]
+	    else:
+	        pass
+	    return BMcbiVariants
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1179]
+[End]
+NOTES:
+考虑到ATP程序镜像大小和代码执行效率，在设计时最多存储并维护3个CBI的变量消息（由项目设计保证，列车最多跨2个联锁区段）。ATP对于新收到并解析完成的联锁消息存储规则如下：
+如果之前已经存储有该联锁消息，则使用新消息将其覆盖；
+否则，如果尚有空的存储空间，则将新消息存储在空的位置；
+否则，使用新消息覆盖掉既有的3个消息中最旧的联锁消息。
+[iTC_CC_ATP-SwRS-0624]
+CBIvariantAge，CBI变量的有效存活时间，最大值为REPORT_AGE_MAX。
+该值与CBIvariantReportLastAge的区别是在判断回复远端ATP消息时，使用OtherATPmaxTime进行计算，在判断有效期时导向安全侧。
+```
+	def CBIvariantAge(cbi, k):
+	    if (Initialization
+	        or CBIvariantAge(k-1) >= REPORT_AGE_MAX):
+	        return REPORT_AGE_MAX
+	    elif (CBIvariantReportAvailable(cbi, k)
+	          and Message.ReplyLocalCC(CBIvariantReport(cbi).CcLoopHour)):
+	        return (1 + Message.ModularSub(ATPtime(k), CBIvariantReport(cbi).CcLoopHour))
+	    elif (CBIvariantReportAvailable(cbi, k)
+	          and Message.ReplyDistantCC(CBIvariantReport(cbi).CcLoopHour)):
+	        return (1 + Message.ModularSub(OtherATPmaxTime(k), CBIvariantReport(cbi).CcLoopHour))
+	    else:
+	        return (1 + CBIvariantAge(cbi, k-1))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1179]
+[End]
+[iTC_CC_ATP-SwRS-0625]
+CBIvariantLowValidity，判断是否在CBI无线的短有效期内，用于PZ的监控。 在CBTC或者使用来自BM信标变量的情况下，该值为真。
+```
+	def CBIvariantLowValidity(cbi, k):
+	    if (not BlockModeUsed(k)
+	        or not CBIvariantMoreAvailableThanBeacon(cbi, k)
+	        or CBIvariantAge(cbi, k) <= ATPsetting.VariantsBMlowValidityTime):
+	        return True
+	    else:
+	        return False
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1179], [iTC_CC-SyAD-1181], [iTC_CC_ATP_SwHA-0236]
+[End]
+[iTC_CC_ATP-SwRS-0626]
+BMcbiVariantValue，根据联锁变量索引，获得CBI的变量。
+```
+	def BMcbiVariantValue(CbiId, VarIndex, k):
+	    if (CBIvariantAge(CbiId, k) > ATPsetting.VariantsBMfullValidityTime):
+	        return False
+	    else:
+	        return BMcbiVariants[CbiId].Variants[VarIndex]
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1179], [iTC_CC-SyAD-1183], [iTC_CC_ATP_SwHA-0235]
+[End]
+[iTC_CC_ATP-SwRS-0754]
+AppliedCBIvariantLoopHour，记录当前使用的CBI的变量的CC时间，供CCNV使用。
+```
+	def AppliedCBIvariantLoopHour(cbiId, k):
+	    if (CBIvariantReportAvailable(cbiId, k)):
+	        return CBIvariantReport(cbiId).CcLoopHour
+	    else:
+	        return AppliedCBIvariantLoopHour(cbiId, k-1)
+```
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0408], [iTC_CC-SyAD-1179]
+[End]

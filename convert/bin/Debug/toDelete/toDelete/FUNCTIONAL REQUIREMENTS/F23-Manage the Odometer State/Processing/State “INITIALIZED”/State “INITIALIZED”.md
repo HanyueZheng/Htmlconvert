@@ -1,0 +1,40 @@
+﻿
+[iTC_CC_ATP-SwRS-0186]
+当上周期里程计已在INITIALIZED状态，并满足以下条件之一时，里程计状态由INITIALIZED变为INVALID：
+传感器测试检测出三路全通全堵；
+或者，非停车状态，而且齿数齿号也不一致。
+At cycle k, ATP shall consider that OdometerState changes from INITIALIZED to INVALID if:
+OdometerState was evaluated Initialized at cycle k-1,
+And:
+Sensors test result is inconsistent;
+Or neither wheel filtered stopped nor cog position ready.
+```
+	if (OdometerState(k-1) is INITIALIZED
+	     and ((UnconsistentSensorTest(k) == True)
+	           or (not WheelFilteredStopped(k)
+	                and not OdometerCogPositionReady(k)))):
+	    OdometerState = INVALID
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149], [iTC_CC-SyAD-0960], [iTC_CC_ATP_SwHA-0063]
+[End]
+NOTES：
+Wheel angular movement is the rotation movement observed on the wheel in cog count from cycle k-1 to k. Angular movement of the wheel can convert into a linear movement by taking into consideration of the uncertainty on wheel diameter measurement provided by calibration process. WheelMinimumMovement and WheelMaximumMovement represents respectively minimum and maximum curvilinear distance ran between cycle k-1and k by a reference point of the wheel located on the rolling circumference.
+[iTC_CC_ATP-SwRS-0187]
+在INITIALIZED状态，如果齿数齿号匹配，则计算车轮最大最小位移依据伪代码中的公式：
+If motion and speed are available at cycle k, then wheel curvilinear movement calculates as follows:
+```
+	if (OdometerState(k) is INITIALIZED):
+	    WheelMinimumMovement(k) = MinCogCalibration(k-1) * (TeethCounter(k) — TeethCounter(k-1))
+	    WheelMaximumMovement(k) = MaxCogCalibration(k-1) * (TeethCounter(k) — TeethCounter(k-1))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0130], [iTC_CC-SyAD-0132], [iTC_CC-SyAD-0135], [iTC_CC_ATP_SwHA-0064]
+[End]
+NOTES:
+对于车载ATP软件的位移，在齿数齿号匹配的状态下，无论ATP位于END_1还是END_2，也无论激活哪段车头，始终以END_1方向为位移的正方向。即当位移大于0时，表示列车向END_1端方向运行，反之则向END_2端方向运行。
+When odometer cog-counter-code matched, regardless of ATP in END_1 or END_2, and no matter the activation of train front, the direction towards END_1 is always be set as the positive direction. That is, when the movement is greater than 0, indicating the direction of the train is running to END_1, and vice versa to END_2.

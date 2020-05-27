@@ -1,0 +1,65 @@
+<p>[iTC_CC_ATP-SwRS-0757]
+LocationPathKnown，判断列车在Block模式没有移动授权条件下是否经过道岔导致非确认定位。
+In BM mode, if train localized but EOA is invalid, LocationPathKnown cannot be TRUE when train cross switch. After train crossed switch and relocalized by beacon successfully, LocationPathKnown can be set to TRUE.</p>
+<pre><code>	def LocationPathKnown(k):
+	    if (Initialization 
+	        or (BlockModeUsed(k)
+	            and TrainLocalized(k)
+	            and not BlockModeEOAvalid(k-1)
+	            and not TrainFilteredStopped(k)
+	            and TrackMap.ExistSwitchBtwTwoLocs(TrainRearLocation(k).Min,
+	                                                      TrainFrontLocation(k).Max))):
+	        return False
+	    elif (TrainLocatedOnBeacon(k)
+	          or TrainRealignmentOnBeacon(k)
+	          or TrainLocatedOnOtherATP(k)
+	          or (TrainPresumablyLocalized(k) and not TrainHasMoved(k))):
+	        return True
+	    else:
+	        return LocationPathKnown(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-1196], [iTC_CC_ATP_SwHA-0248]
+[End]
+[iTC_CC_ATP-SwRS-0653]
+TrainLocatedOnKnownPath，判断列车是否定位并已知LocationPathKnown。</p>
+<pre><code>	def TrainLocatedOnKnownPath(k):
+	    return (TrainLocalized(k)
+	             and LocationPathKnown(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1196]
+[End]
+NOTES:
+BM下的EOA与LocationPathKnown和TrainLocatedOnKnownPath的关系如下：
+BM模式下，只要是之前BM的EOA无效，那么在岔区肯定不能使得LocationPathKnown为True；从而TrainLocatedOnKnownPath为False，BM的EOA也不可能有效；
+当出了岔区，又读到信标进行重定位，或者通过记忆定位或远端定位初始化后，LocationPathKnown才能重新变为True ；
+而如果之前BM的EOA是有效的，那么进入岔区时LocationPathKnown也不会变为无效。
+Figure 515 Train localization state
+列车的定位状态及其相关需求编号，如Figure 515 Train localization state所示，有以下四种状态：
+NOT_LOCALIZED，初始非定位状态。
+MOVING_INIT，读到一个信标，进入定位初始化状态。
+LOCALIZED_NOT_CONFIRMED，已定位，但未确认状态。
+LOCALIZED_CONFIRMED，已定位，且已确认定位。
+[iTC_CC_ATP-SwRS-0275]
+LocalizationState，列车的定位状态，用于用于维护诊断功能。</p>
+<pre><code>	def LocalizationState(k):
+	    if (TrainLocatedOnKnownPath(k)
+	        and not MemLocationNotConfirmed(k)):
+	        return LOCALIZED_CONFIRMED
+	    elif (TrainLocalized(k)):
+	        return LOCALIZED_NOT_CONFIRMED
+	    elif (MovingInitialByBeacon(k)):
+	        return MOVING_INIT
+	    else:
+	        return NOT_LOCALIZED
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0408]
+[End]</p>

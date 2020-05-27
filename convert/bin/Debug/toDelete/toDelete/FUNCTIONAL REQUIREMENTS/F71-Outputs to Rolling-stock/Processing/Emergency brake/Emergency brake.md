@@ -1,0 +1,121 @@
+﻿
+ATP使用控制车辆是否输出紧急制动，出于安全考虑，在要求输出紧急制动时将该输出端口设置为限制状态，不输出停车制动时将该端口置为允许状态。
+ATP shall control the emergency brake of the train. Due to the safety oriented, ATP will set the output port as restricted status when outputting the emergency brake order, and set the port as permissive status when the ATP does not send trigger the brake.
+[iTC_CC_ATP-SwRS-0556]
+IncompatibleDistantATP，判断本ATP与冗余ATP之间的Coreld和SubSystemID是否相匹配。当初始化，冗余ATP信息不可用，或者冗余ATP读取的Dataplug中的SSID与本ATP相一致而Coreld不一致时，认为两端ATP相互匹配；否则，ATP将触发紧急制动。
+The Coreld and SubSystemID of the ATP and redundant ATP need to compare for the consistency, which records in IncompatibleDistantATP. In initialization, the message from redundant ATP cannot be used. On the other hand, when SubSystemID in the Dataplug read by redundant ATP is the same, but the Coreld is different, both ATP regards as consistency. Otherwise, ATP would trigger emergency brake. 
+```
+	def IncompatibleDistantATP(k):
+	    if (Initialization
+	        or not OtherATPmessageValid(k)):
+	        return False
+	    elif (OtherCoreId(k) != OtherATP(k).CoreId
+	          or SubSystemId(k) != OtherATP(k).CC_SSID):
+	        return True
+	    else:
+	        return IncompatibleDistantATP(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source= [iTC_CC-SyAD-0964], [iTC_CC_ATP_SwHA-0224]
+[End]
+[iTC_CC_ATP-SwRS-0271]
+ApproachableSignalOverrun，本周期列车车头最大定位是否冒进可接近信号机。
+当满足以下所有条件时，ATP认为列车冒进了可接近信号机，则设置ApproachableSignalOverrun为True；
+当前未选择MotionProtectionInhibition；
+上周期ApproachableSignalOverrun为False；
+本周期列车位移MaximumTrainMotion向激活的驾驶室方向运行；
+本周期列车车头最大定位TrainFrontLocation经过了一个带OVERLAP的信号机奇点；
+该信号机变量状态是限制而其所带Overlap已建立（Overlap状态建立的条件见Table 59）。
+否则，设置ApproachableSignalOverrun为False。
+ApproachableSignalOverrun, ATP shall determine whether the location of maximum train head overruns an approachable signal with overlap established.
+When all of the following conditions fulfilled, ATP considers the train has overrun a restricted signal in this cycle, and set ApproachableSignalOverrun as True.
+not MotionProtectionInhibition;
+And ApproachableSignalOverrun was False at the last cycle;
+And the moving direction in current cycle is toward on the train front end;
+And the maximum location of train front end passes the position of the signal with overlap attribute in this cycle;
+And the variants status of the signal is overlap established(refer to Table 59).
+Otherwise, ATP set ApproachableSignalOverrun as False.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0318] , [iTC_CC_ATP_SwHA-0110]
+[End]
+[iTC_CC_ATP-SwRS-0132]
+EBforOperationalRequest，来自CCNV的EB输出请求
+ATP shall trigger emergency brake according to CCNV‘s operational emergency brake request.
+```
+	if (ATOcontrolTimeValid(k) == True)
+	    EBforOperationalRequest(k) = not NonVitalRequest.EmergencyBrakingNotRequested(k)
+	else:
+	    EBforOperationalRequest = True
+```
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0068], [iTC_CC-SyAD-1044]
+[End]
+[iTC_CC_ATP-SwRS-0361]
+TrainEmergencyBrakeRequested，判断本周期是否需要施加EB。
+ATP shall control emergency brake output according following emergency braking requests from control functions:
+moral-time control function has detected an hazardous situation (route exclusivity violation);
+train speed is no longer compliant with respect of whole speed restriction of guide way;
+an approachable speed limit has been over-run (RM speed limit or memorized location speed limit);
+an over-speed in reverse direction of travel has been detected;
+an emergency evacuation is required for passengers;
+train departure with not all doors closed and locked has been detected;
+the train starts to move on a PSD zone which status is not "all PSD proven closed and locked";
+train has moved although there are potential undetectable dangers;
+an operational emergency braking has been requested by CC-Non Vital;
+train end doors are not closed and locked;
+not all doors closed and locked has been detected on a PSD zone and parking brake is not applied, 
+not all PSD closed and locked has been detected on a PSD zone and parking brake is not applied;
+the approachable signal is overrun;
+the VLE-2 safe timer failed;
+the information of Dataplug in both ends of cab is inconsistent.
+```
+	TrainEmergencyBrakeRequested(k)
+	 = EBonNonExclusiveRoute(k)
+	   or EBforOverEnergy(k)
+	   or EBforRMoverSpeed(k)
+	   or EBforMemorizedLocationOverSpeed(k)
+	   or EBforRollbackOverSpeed(k)
+	   or EBforReverseOverSpeed(k)
+	   or EBforEvacuationWhileTrainLeavingStation(k)
+	   or EBforEvacuationWithTrainStopped(k)
+	   or EBforDepartureWithoutTDCL(k)
+	   or EBforMovingWithoutTDCL(k)
+	   or EBforUnexpectedPSDopening(k)
+	   or EBforUndetectableDangerRisk(k)
+	   or EBforOperationalRequest(k)
+	   or EBforNotAllTrainEndHoldDoorsClosed(k)
+	   or EBforPBnotAppliedDueToTrainDoors(k)
+	   or EBforPBnotAppliedDueToPSD(k)
+	   or ApproachableSignalOverrun(k)
+	   or SafeTimerFailed(k)
+	   or IncompatibleDistantATP(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0136], [iTC_CC-SyAD-0248], [iTC_CC-SyAD-0266], [iTC_CC-SyAD-0316], [iTC_CC-SyAD-0329], [iTC_CC-SyAD-0331], [iTC_CC-SyAD-0352], [iTC_CC-SyAD-0362], [iTC_CC-SyAD-0964], [iTC_CC_ATP_SwHA-0143], [iTC_CC_ATP_SwHA-0146], [iTC_CC_ATP_SwHA-0148], [iTC_CC_ATP_SwHA-0154], [iTC_CC-SyAD-0137], [iTC_CC-SyAD-0271], [iTC_CC-SyAD-0274], [iTC_CC-SyAD-0361]
+[End]
+[iTC_CC_ATP-SwRS-0362]
+InhibitEmergencyBrake，输出和缓解EB的条件
+If an emergency braking request ordered by a control function, ATP shall not inhibit emergency brake until train filtered-stop reached.
+ATP shall inhibit emergency brake if and only if train detected at filtered stop and there is no emergency braking request from control functions.
+```
+	if (InhibitEmergencyBrake(k-1) == True)
+	    InhibitEmergencyBrake = not TrainEmergencyBrakeRequested(k)
+	elif ((InhibitEmergencyBrake(k-1) == False)
+	         and (TrainFilteredStopped(k) == True))
+	    InhibitEmergencyBrake = not TrainEmergencyBrakeRequested(k)
+	else:
+	    InhibitEmergencyBrake = InhibitEmergencyBrake(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0362], [iTC_CC-SyAD-0364], [iTC_CC_ATP_SwHA-0155]
+[End] 

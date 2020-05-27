@@ -1,0 +1,6 @@
+﻿
+
+|Name|Nature|Provided by|
+|-----|
+|CCdataPlugInfo|External| REF _Ref348720966 Interface with CC Data Plug|
+

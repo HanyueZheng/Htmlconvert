@@ -1,0 +1,38 @@
+﻿
+[iTC_CC_ATP-SwRS-0647]
+TrainStoppedStartTime，记录开始停车的时间
+```
+	def TrainStoppedStartTime(k):
+	    if (Initialization
+	        or (not TrainFilteredStopped(k-1)
+	             and TrainFilteredStopped(k)):
+	        return ATPtime(k)
+	    else:
+	        return TrainStoppedStartTime(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1211]
+[End]
+[iTC_CC_ATP-SwRS-0648]
+TrainLocatedOnOtherATP，本端和远端都在停车状态时，才有可能使用远端定位
+Only when ATP and redundant ATP are all in filtered stopped state, can ATP use redundant ATP location for initialization.
+```
+	def TrainLocatedOnOtherATP(k):
+	    if (OtherATP(k).LocatedOnKnownPath
+	        and TrainFilteredStopped(k)
+	        and OtherATP(k).TrainFilteredStopped
+	        and Message.IsMoreRecent(OtherATP(k).LatestTimeOtherCore, TrainStoppedStartTime(k))
+	        and not TrainLocatedOnKnownPath(k-1)
+	        and not TrainPresumablyLocalized(k)):
+	        TrainLocatedOnOtherATP = True
+	    else:
+	        TrainLocatedOnOtherATP = False
+	    return TrainLocatedOnOtherATP
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1211], [iTC_CC_ATP_SwHA-0244]
+[End]

@@ -1,0 +1,8 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|IdenticalVersionOfDualCPU|√|√|BOOLEAN|
+|NonVitalRequestReady|×|√| REF BOOLEAN  \* MERGEFORMAT BOOLEAN|
+|TrainKnown|√|√| REF BOOLEAN  \* MERGEFORMAT BOOLEAN|
+

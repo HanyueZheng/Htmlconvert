@@ -1,0 +1,3 @@
+﻿
+为支持不同项目的情况，ATP软件在运行前会载入可由项目配置的安全设置参数，包含了线路属性、项目要求、列车运动学特性等内容，其结构如Table 61所示。其详细定义见[REF11]。
+For application to different projects, ATP shall load vital settings before cycling operation, as shown as Table 61, the configurable data including the parameters of track, specific demands for the project, train characteristics etc. Refer to [REF11] for the detail definition.

@@ -1,0 +1,7 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|CCvariants|√|√| REF BOOLEAN \h BOOLEAN|
+|ReceivedCBIloopHour|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

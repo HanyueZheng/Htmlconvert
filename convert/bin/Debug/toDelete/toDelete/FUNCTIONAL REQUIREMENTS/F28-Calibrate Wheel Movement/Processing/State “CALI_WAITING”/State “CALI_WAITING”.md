@@ -1,0 +1,43 @@
+﻿
+[iTC_CC_ATP-SwRS-0193]
+在CALI_WATING状态下使用默认齿距值
+From power-up and while calibration process is not successfully performed, ATP shall use default calibration to compute train motion and shall consider itself in the state of waiting for the first beacon belonging to a couple of calibration.
+```
+	if (Initialization)
+	    CalibrationState =  CALI_WAITING
+	    MinCogCalibration = ATPsetting.OdoCaliDefaultCogLengthMin
+	    MaxCogCalibration = ATPsetting.OdoCaliDefaultCogLengthMax
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0132], [iTC_CC-SyAD-0139], [iTC_CC_ATP_SwHA-0195]
+[End]
+[iTC_CC_ATP-SwRS-0463]
+当读到线路地图中的MTIB1时，齿距校准状态从CALI_WAITING转入CALI_MEASURING。
+If ATP is in the state of CALI_WAITING, can transform to the measuring state if following conditions fulfilled:
+a valid beacon has been received and this beacon belongs to a couple of calibration,
+and train kinematic was valid,
+and no excessive slip/slide effect was detected,
+and WheelMinimumMovement is not null,
+Then, ATP shall memorize:
+position of the wheel before and after top location signal of received beacon
+the ID of received beacon,
+the sign of the movement when crossing beacon,
+and shall consider itself as CALI_MEASURING.
+```
+	if ((CalibrationState(k-1) =  CALI_WAITING)
+	    and (NewBeaconObtained(k) == True)
+	    and (TrackMap.BeaconBelongsToCalibrationCouple(BeaconMessage.Id(k)) == True)
+	    and (SlipSlideDetected(k) == False))
+	    CalibrationMeasurementStartPositionMin = CogPositionBeforeTopLoc(k)
+	    CalibrationMeasurementStartPositionMax = CogPositionAfterTopLoc(k)
+	    CalibrationMeasurementStartBeacon = BeaconMessage.Id(k)
+	    CalibrationEnd1RunningForward = End1RunningForward(k)
+	    CalibrationState = CALI_MEASURING
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0140], [iTC_CC-SyAD-0141], [iTC_CC-SyAD-0145], [iTC_CC-SyAD-0183]
+[End]

@@ -1,0 +1,149 @@
+﻿
+[iTC_CC_ATP-SwRS-0065]
+RMRselectedDrivingMode，是否选择了RMR倒车模式。其状态来自于项目可配置的列车输入采集。
+RMRselectedDrivingMode represents the choice of RMR. 
+```
+	def RMRselectedDrivingMode(k):
+	    return Offline.GetRMRselectedDrivingMode(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0218], [iTC_CC-SyAD-0340], [iTC_CC-SyAD-0344], [iTC_CC-SyAD-1003], [iTC_CC-SyAD-1308], [iTC_CC_ATP_SwHA-0201]
+[End]
+列车在非RMR模式下，向激活车头的反向运行，称之为回溜。ATP监控回溜的速度必须满足项目配置的允许速度，否则将触发EB。如果回溜的距离超过项目配置的最大距离时，ATP应当触发无法缓解的永久EB。
+When the train is not on RMR mode, and the train moved backward related to the active cab, called rollback. ATP shall request EB if the speed of the rollback is greater than the project limits. If the rollback distance is greater than the project limits, ATP shall request the permanent EB, which cannot release.
+[iTC_CC_ATP-SwRS-0300]
+RollbackDistanceAccount_1，累计回溜的距离（负值表示在回溜）：
+初始化时设置该值为0；
+否则，如果列车运动学无效，则设置为配置参数的默认值；
+否则，在END_1激活且未选择RMR模式的前提下：
+若里程计已初始化，且列车向END_1方向运行，则累加最小位移，若超过0则取0，否则是一个负值。
+否则，若里程计齿数齿号匹配，则累加列车最大位移
+否则，即里程计未初始化，则保持累计距离不变。
+其他情况，保持累计距离不变。
+When train front extremity is END_1 and traction effort is supposed to be in the direction of travel, RollbackDistanceAccount_1 is the estimated maximum distance which separates current front extremity 1 position to last most forward position reached by this extremity. ATP shall evaluate RollbackDistanceAccount_1 in order to control that speed does not exceed ATPsetting.MPnotAuthLimitSpeed .
+```
+	def RollbackDistanceAccount_1(k):
+	    if (Initialization)
+	        return 0
+	    elif (not ValidTrainKinematic(k)):
+	        return (-1 * ATPsetting.MPnotAuthDistWithoutMotionAvailable)
+	    elif (TrainFrontEnd(k) is END_1
+	           and not RMRselectedDrivingMode(k)):
+	        if (OdometerState(k) is INITIALIZED):
+	            if (End1RunningForward(k)):
+	                return min(0, RollbackDistanceAccount_1(k-1) + MinimumTrainMotion(k))
+	            else:
+	                return (RollbackDistanceAccount_1(k-1) + MaximumTrainMotion(k))
+	        else:
+	            return RollbackDistanceAccount_1(k-1)
+	    else:
+	        return RollbackDistanceAccount_1(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0326], [iTC_CC-SyAD-0328]
+[End]
+[iTC_CC_ATP-SwRS-0301]
+RollbackDistanceAccount_2，累计回溜的距离（负值表示在回溜）：
+初始化时设置该值为0；
+否则，如果列车运动学无效，则设置为配置参数的默认值；
+否则，在END_2激活且未选择RMR模式的前提下：
+若里程计已初始化，且列车向END_2方向运行，则减去最小位移，若超过0则取0，否则是一个负值。
+否则，若里程计已初始化，则减去列车最大位移
+否则，即里程计还未初始化，则保持累计距离不变。
+其他情况，保持累计距离不变。
+When train front extremity is END_2 and traction effort is supposed to be in the direction of travel, RollbackDistanceAccount_2 is the estimated maximum distance which separates current front extremity 2 position to last most forward position reached by this extremity. ATP shall evaluate RollbackDistanceAccount_2 in order to control that speed does not exceed ATPsetting.MPnotAuthLimitSpeed.
+```
+	def RollbackDistanceAccount_2(k):
+	    if (Initialization)
+	        return 0
+	    elif (not ValidTrainKinematic(k)):
+	        return (-1 * ATPsetting.MPnotAuthDistWithoutMotionAvailable)
+	    elif (TrainFrontEnd(k) is END_2
+	           and not RMRselectedDrivingMode(k)):
+	        if (OdometerState(k) is INITIALIZED):
+	            if (End2RunningForward(k)):
+	                return min(0, RollbackDistanceAccount_2(k-1) - MinimumTrainMotion(k))
+	            else:
+	                return (RollbackDistanceAccount_2(k-1) — MaximumTrainMotion(k))
+	        else:
+	            return RollbackDistanceAccount_2(k-1)
+	    else:
+	        return RollbackDistanceAccount_2(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0326], [iTC_CC-SyAD-0328]
+[End]
+[iTC_CC_ATP-SwRS-0302]
+UnrecoverableRollbackOverSpeed，如果ATP检测到列车已经回退超过项目限制的最大距离，则设置永久回退超速
+From ATP power-up, UnrecoverableRollbackOverSpeed shall initialize to False.
+UnrecoverableRollbackOverSpeed shall be set to True if and only if following conditions are fulfilled:
+driving selector indicates that traction effort is supposed to be in the direction of travel,
+train front extremity is END_2 or END_1,
+and rollback limit speed currently applicable is null for this direction of travel.
+Once UnrecoverableRollbackOverSpeed set as True, it shall stay at state True while ATP is not reboot.
+```
+	def UnrecoverableRollbackOverSpeed(k):
+	    return (UnrecoverableRollbackOverSpeed(k-1)
+	            or (not RMRselectedDrivingMode(k)
+	                and ((TrainFrontEnd(k) is END_2
+	                      and (abs(RollbackDistanceAccount_2(k))
+	                           >  ATPsetting.MPnotAuthLimitDistance))
+	                     or (TrainFrontEnd(k) is END_1
+	                         and (abs(RollbackDistanceAccount_1(k))
+	                              >  ATPsetting.MPnotAuthLimitDistance))))) 
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0275], [iTC_CC-SyAD-0328], [iTC_CC-SyAD-0364], [iTC_CC_ATP_SwHA-0123]
+[End]
+[iTC_CC_ATP-SwRS-0303]
+RollbackOverSpeed，下列任一条件满足，认为回退超速
+若车头2激活，位移为END_1方向，未选择RMR模式
+车速大于当前回退距离所在限速
+若车头1激活，位移为END_2方向，未选择RMR模式
+车速大于当前回退距离所在限速
+列车运动学无效
+已发生了永久回退超速错误
+RollbackOverSpeed shall be True if and only if following conditions are fulfilled:
+ driving selector indicates that traction effort is supposed to be in the direction of travel,
+ train front extremity is END_2 or END_1,
+ and movement observed is in the opposite direction of travel,
+ and over-estimated train speed is greater than ATPsetting.MPnotAuthLimitSpeed currently applicable for this direction of travel and rollback speed restrictions is not null.
+Or:
+ train has reached a position due a rollback movement which is unrecoverable,
+Or:
+ train kinematic is invalid,
+```
+	def RollbackOverSpeed(k):
+	    return (not ValidTrainKinematic(k)
+	            or UnrecoverableRollbackOverSpeed(k)
+	            or (not RMRselectedDrivingMode(k)
+	                and (TrainMaxSpeed(k) >= ATPsetting.MPnotAuthLimitSpeed
+	                     and ((TrainFrontEnd(k) is END_2
+	                            and End1RunningForward(k) and not End2RunningForward(k))
+	                          or (TrainFrontEnd is END_1
+	                            and End2RunningForward(k) and not End1RunningForward(k))))))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0275], [iTC_CC-SyAD-0326], [iTC_CC-SyAD-0329], [iTC_CC-SyAD-0364], [iTC_CC_ATP_SwHA-0122]
+[End]
+[iTC_CC_ATP-SwRS-0304]
+EBforRollbackOverSpeed，如果ATP检测到回溜超速，则输出EB
+ATP shall request emergency braking if a reverse speed limit is over-run for unwilling rollback or excessive reverse motion.
+```
+	EBforRollbackOverSpeed = RollbackOverSpeed(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0328], [iTC_CC-SyAD-0329], [iTC_CC-SyAD-0364], [iTC_CC_ATP_SwHA-0124]
+[End]

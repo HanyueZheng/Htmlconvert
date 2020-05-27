@@ -1,0 +1,20 @@
+﻿
+
+|Name|Nature|Provided by|
+|-----|
+|CBIvariantRequest|External| REF _Ref348814663 \h Interface with CI Radio|
+|CCsynchroReport|External| REF _Ref348814755 \h Interface with Distant ATP|
+|CCvariantReport|External| REF _Ref348814777 \h Interface with CI Radio|
+|CIsetting|External| REF _Ref348815425 \h Interface with PSD|
+|LocReport|External| REF _Ref348853347 \h Interface with ZC|
+|TOC_CBIvariantRequest|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_CCsyncReport|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_CCvariantReport|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_CIsetting|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_LocReport|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_VersionReport|External| REF _Ref348814578 \h Interface between two CPUs|
+|TOC_VIOM2VitalOut|External| REF _Ref348814578 \h Interface between two CPUs|
+|VersionFromCCreport|External| REF _Ref348853436 \h Interface with LC|
+|VIOM1VitalOut|External| REF _Ref345055931 \h F71-Outputs to Rolling-stock|
+|VIOM2VitalOut|External| REF _Ref345055931 \h F71-Outputs to Rolling-stock|
+

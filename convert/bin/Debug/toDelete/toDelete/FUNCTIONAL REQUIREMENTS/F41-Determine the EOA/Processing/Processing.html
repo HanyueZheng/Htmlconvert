@@ -1,0 +1,4 @@
+<p>ATP有CBTC和BLOCK两种运营模式，当采集到BM输入时，应用BM模式；否则，就应用CBTC模式。
+There are two operational modes of ATP, BLOCK mode and CBTC. When ATP acquired BM input, it applies BM mode; otherwise, it applies CBTC mode.
+ATP在BLOCK模式和CBTC模式下，对于EOA的处理方式不同。在CBTC模式，EOA来自ZC消息。而在BLOCK运营模式，ATP根据收到的BM变量状态，从列车所在定位位置，向下游进行搜索，当遇到第一个限制状态的变量或线路边界时，就将其作为本周期列车的EOA，该EOA的有效期也应当与该BM变量的有效期相同。
+In the block model and CBTC model ATP have different processing mode for EOA. In the CBTC mode, EOA is coming from ZC message. In block mode, according to the BM variant status, ATP searches the target from downstream of the train front location. When it gets the first restricted variant or track border, ATP shall regard it at the EOA for this cycle, and the validity of EOA shall be the same as the BM variants.</p>

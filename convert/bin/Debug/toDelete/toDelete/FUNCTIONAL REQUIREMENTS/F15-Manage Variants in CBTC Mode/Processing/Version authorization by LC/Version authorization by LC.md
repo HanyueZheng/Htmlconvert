@@ -1,0 +1,94 @@
+﻿
+[iTC_CC_ATP-SwRS-0630]
+VersionAuthorizationReceived，收到版本授权
+```
+	def VersionAuthorizationReceived(lcId, k):
+	    return Message.Received(VersionAuthorization(lcId), k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0378]
+[End]
+[iTC_CC_ATP-SwRS-0103]
+VersionAuthorizationAvailable，LC版本授权消息可用
+```
+	def VersionAuthorizationAvailable(lcId, k):
+	    return Message.Available(VersionAuthorizationReceived(lcId, k),
+	                                  VersionAuthorization(lcId).CcLoopHour,
+	                                  ATPsetting.VersionsValidityTime,
+	                                  LastVersionReportAge(lcId, k-1),
+	                                  k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0378], [iTC_CC_ATP_SwHA-0021], [iTC_CC_ATP_SwHA-0019]
+[End]
+[iTC_CC_ATP-SwRS-0453]
+LastVersionReportAge，记录从上次收到LC的版本信息到现在的时间。
+```
+	def LastVersionReportAge(lcId, k):
+	    return Message.LastAge(VersionAuthorizationAvailable(lcId, k),
+	                            VersionAuthorization(lcId).CcLoopHour,
+	                            LastVersionReportAge(lcId, k-1),
+	                            k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0378]
+[End]
+[iTC_CC_ATP-SwRS-0104]
+ReceivedVersionMessages，用于存储从LC收到的MAX_ZC_NB个ZC区的授权信息。由于每个ZC分属不同的LC管理，因此收到特定的LC消息时应仅更新其所对应ZC的版本授权状态。
+
+|Identification|Logical Type|Description|
+|-----|
+|ST_VERSION_RCV|||
+||ValidityTime| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|版本授权信息过期时间|
+||VitalAuthorization[ REF MAX_ZC_NB \h MAX_ZC_NB]| REF BOOLEAN \h  \* MERGEFORMAT BOOLEAN|ZC区授权信息|
+
+```
+	def ReceivedVersionMessages(LcId, k):
+	    if (Initialization):
+	        ReceivedVersionMessages = None
+	    elif (VersionAuthorizationAvailable(LcId, k)):
+	        if (Message.ReplyLocalCC(VersionAuthorization(LcId).CcLoopHour)):
+	            NewValidity = (VersionAuthorization(LcId).CcLoopHour
+	                              + ATPsetting.VersionsValidityTime)
+	        else:
+	            NewValidity
+	                = (ATPtime(k) + ATPsetting.VersionsValidityTime
+	                   - (OtherATPmaxTime(k) - VersionAuthorization(LcId).CcLoopHour))
+	        for ZcId in range(0, MAX_ZC_NB):
+	            if  (TrackMap.Zc[ZcId].LcId == LcId):
+	                ReceivedVersionMessages[ZcId].VitalAuthorization
+	                    = VersionAuthorization(LcId).VitalAuthorization[ZcId]
+	                ReceivedVersionMessages[ZcId].ValidityTime = NewValidity
+	            else:
+	                pass
+	    else:
+	        ReceivedVersionMessages = ReceivedVersionMessages(k-1)
+	    return ReceivedVersionMessages
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0220], [iTC_CC-SyAD-0373], [iTC_CC-SyAD-0379], [iTC_CC-SyAD-0380], [iTC_CC_ATP_SwHA-0023], [iTC_CC_ATP_SwHA-0177]
+[End]
+[iTC_CC_ATP-SwRS-0631]
+VersionAuthorizedByLC，获取ZC的版本授权状态
+```
+	def VersionAuthorizedByLC(ZcId, k):
+	    if (Message.IsMoreRecent
+	          (ReceivedVersionMessages(TrackMap.Zc[ZcId].LcId ,k)[zcId].ValidityTime,
+	           ATPtime(k))):
+	        return ReceivedVersionMessages(TrackMap.Zc[ZcId].LcId, k)[zcId].VitalAuthorization
+	    else:
+	        return False
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0300]
+[End]

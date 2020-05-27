@@ -1,0 +1,106 @@
+﻿
+对于不同项目，ATP内部计算的输出变量所对应的端口号是可配置的，该对应关系在项目配置数据中设定。
+For different project, the internal calculating output ports of ATP are configurable, which defined in the project vital settings.
+[iTC_CC_ATP-SwRS-0546]
+CCworkOvertime，监控CC是否连续工作超过MAX_RESET_TIME时间(该时间小于MAX_ATP_LOOP_HOUR)。如果CC运行超过MAX_RESET_TIME时间，则ATP需将所有对VIOM输出的端口置为限制状态。
+ATP shall monitor the CC continuous work time. If the CC is running more than MAX_RESET_TIME (the value is far less than MAX_ATP_LOOP_HOUR), the ATP shall set all output to VIOM as restricted status.
+```
+	def CCworkOvertime(k):
+	    return ((CoreId(k) is END_1
+	             and ((ATPtime(k) - CC1_INIT_TIME) > MAX_RESET_TIME))
+	            or (CoreId(k) is END_2
+	                and ((ATPtime(k) - CC2_INIT_TIME) > MAX_RESET_TIME)))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0361], [iTC_CC_ATP_SwHA-0217]
+[End]
+[iTC_CC_ATP-SwRS-0584]
+VIOM1OutNotDisabled，VIOM2OutNotDisabled，CCNV请求“非禁止安全输出”。
+当来自CCNV的消息无效时，应设置CCNV请求的“非禁止安全输出”为限制状态；
+否则，根据CCNV发送的状态字进行设置。
+Whether CCNV request the channel of VIOM shall be disabled or not.
+```
+	def VIOM1OutNotDisabled(port, k):
+	    return (ATOcontrolTimeValid(k)
+	            and NonVitalRequest(k).Viom1[port])
+```
+```
+	def VIOM2OutNotDisabled(port, k):
+	    return (ATOcontrolTimeValid(k)
+	            and NonVitalRequest(k).Viom2[port])
+```
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1132]
+[End]
+NOTES：
+只有当CCNV“非禁止”某路安全输出为True（即允许某路安全输出）时，ATP才能根据自身的运行结果设置该路输出；而如果CCNV“非禁止”该路输出为False时，则ATP应设置该路输出为限制状态。就是说，CCNV可以通过设置“非禁止”某路安全输出为False，来强制某路输出为限制状态（导向安全侧）；但无法强制任何一路安全输出为True（导向危险侧），因此该功能不会导致安全问题。该功能主要在CCNV进行组合测试时使用。
+When some vital outputs are "not disabled" by CCNV, ATP shall set their values as commands calculated by ATP; and if CCNV disabled these outputs channel, ATP shall set their values as restriction. That is to say, CCNV can coerce some output channels as restricted status (to the safe side), but cannot coerce them as permissive (to the hazardous side). This function normally used for the combined test.
+[iTC_CC_ATP-SwRS-0465]
+VIOM1VitalOut，VIOM2VitalOut，ATP输出给VIOM的车辆安全控制命令。
+对于每一个端口的具体含义，是由项目配置的。ATP支持的可配置端口如Table 514所示。
+只有当CC未工作超时且CCNV未禁止该端口输出时，才能根据ATP计算结果输出该端口；否则，ATP默认该端口为限制状态。
+```
+	def VIOM1VitalOut(k):     
+	    for port in range(0, MAX_VITAL_OUTPUT_NB):
+	        if (not CCworkOvertime(k)
+	            and not MatchRebootCondition(k) 
+	            and VIOM1OutNotDisabled(k)[port]):
+	            VIOM1VitalOut[port] = Offline.GetVIOM1VitalOut(port)
+	        else:
+	            VIOM1VitalOut[port] = False
+	    return VIOM1VitalOut
+```
+```
+	def VIOM2VitalOut(k):
+	    for port in range(0, MAX_VITAL_OUTPUT_NB):
+	        if (not CCworkOvertime(k)
+	            and not MatchRebootCondition(k)
+	            and VIOM2OutNotDisabled(k)[port]):
+	            VIOM2VitalOut[port] = Offline.GetVIOM2VitalOut(port)
+	        else:
+	            VIOM2VitalOut[port] = False
+	    return VIOM2VitalOut
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0043], [iTC_CC-SyAD-0114], [iTC_CC-SyAD-0359], [iTC_CC-SyAD-1129], [iTC_CC-SyAD-0152], [iTC_CC_ATP_SwHA-0017], [iTC_CC_ATP_SwHA-0184], [iTC_CC_ATP_SwHA-0270]
+[End]
+Table 514 Configurable outputs for rolling stock
+
+|Name|Description|
+|-----|
+||InhibitEmergencyBrake|是否禁止输出EB|
+||InhibitParkingBrake|是否禁止输出PB|
+||EnableTrainDoorOpening_A|是否授权A侧开门|
+||EnableTrainDoorOpening_B|是否授权B侧开门|
+||HoldDoorsClosed_A|是否保持A侧门锁闭|
+||HoldDoorsClosed_B|是否保持B侧门锁闭|
+||EmergencyDetrainDoorLockingEnd1|是否保持End1端门锁闭|
+||EmergencyDetrainDoorLockingEnd2|是否保持End2端门锁闭|
+||TrainFilteredStopped|是否ATP判断停车|
+||TractionAuthorisedSenseEnd1 |是否授权向End1端牵引|
+||TractionAuthorisedSenseEnd2|是否授权向End2端牵引|
+||MotionProtectionInhibition|当前是否处于ATP监控模式|
+
+[iTC_CC_ATP-SwRS-0455]
+根据[REF5]，在ATP发送给VIOM的命令中还应附加当前时间ATPtime，上下CPU模块的周期同步校核字Trace和Dt，安全时钟状态SafeTimerFailed，是否主控CC信息MasterCCcore，以及需要反馈给各自VIOM的时间信息LatestVIOM1LoopHourVIOM[2]和LatestVIOM2LoopHourVIOM[2]。
+According to [REF5], the commands ATP sent to VIOM shall attach the current ATPtime, cycle synchronization check word Trace and Dt, safety clock state SafeTimerFailed, MasterCCcore, the LatestVIOM1LoopHourVIOM and LatestVIOM2LoopHourVIOM needed to feedback to the respective VIOM.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0114], [iTC_CC_ATP_SwHA-0017], [iTC_CC_ATP_SwHA-0271]
+[End]
+[iTC_CC_ATP-SwRS-0752]
+OutOfCode，ATP计算输出给VIOM的消息后，需要进行VIOM消息的VCP签名检测，用于维护诊断。
+如果检测出签名有误，或上周期该值已经为True，则保持设置OutOfCode为True，表明ATP系统错误，此时需在VLE前面板LED显示ERR_OUT_CODE信息；
+否则，设置OutOfCode为False。
+\#Category=Functional
+\#Contribution=SIL0
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0408], [iTC_CC-SyAD-0114],
+ [iTC_CC-SyAD-0386][End]

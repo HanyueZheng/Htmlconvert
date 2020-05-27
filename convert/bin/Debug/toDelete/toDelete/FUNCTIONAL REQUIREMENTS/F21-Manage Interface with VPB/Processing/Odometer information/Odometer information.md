@@ -1,0 +1,135 @@
+﻿
+编码里程计运行过程中的安全性由其齿数齿号一致性的检查来保证，因此ATP需在每次中断中锁存VPB齿数和齿号寄存器中的值，如Table 56所示，在主任务中进行判断。而当编码里程计未发生转动时，ATP还需驱动VPB对里程计的各路传感器进行测试，并通过传感器返回的导通状态来判断里程计是否工作正常。
+The consistency of cog count and cog code makes sure the safety during the processing of coded odometer, so ATP needs to save the value of cog count and cog code in each interrupt as shown in Table 56, and judge it in the main task. However when the coded odometer does not move, ATP needs to driver VPB board in order to test every sensor in the odometer. In addition, ATP needs to judge the working status of odometer through the conduction status returning from the sensor.
+Table 56 Odometer information in interrupt
+
+|Identification|Logical Type|Description|
+|-----|
+|ST_ODOMETER_IMM|||
+||CogCounter| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|该中断齿数|
+||TopLocValid| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|该中断检测到Top-loc|
+||CogCode| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|该中断齿号寄存器值|
+||CalCogCounter| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|当top-loc发生时VPB锁存的齿数|
+||SensorTesting| REF BOOLEAN \h  \* MERGEFORMAT BOOLEAN|该中断是否进行传感器测试|
+||TestResult| REF ENUM_SENSOR_TEST_RESULT \h  \* MERGEFORMAT ENUM_SENSOR_TEST_RESULT|该中断传感器测试结果|
+||A1| REF ENUM_SENSOR_STATUS \h  \* MERGEFORMAT ENUM_SENSOR_STATUS|该中断中传感器1的状态|
+||A2| REF ENUM_SENSOR_STATUS \h  \* MERGEFORMAT ENUM_SENSOR_STATUS|该中断中传感器2的状态|
+||A3| REF ENUM_SENSOR_STATUS \h  \* MERGEFORMAT ENUM_SENSOR_STATUS|该中断中传感器3的状态|
+
+[iTC_CC_ATP-SwRS-0113]
+使用OdometerImm记录每次中断中的VPBWrite寄存器编码里程计相关属性变化情况，其结构如Table 56所示。
+OdometerImm records the changes of VPBWrite register in each interrupt, structured as Table 56.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0130], [iTC_CC_VLE-2-VPB-2-SyID-0023], [iTC_CC_VLE-2-VPB-2-SyID-0024]
+[End]
+[iTC_CC_ATP-SwRS-0114]
+中断中，当VPB板检测到Top-loc信号后，ATP累加本周期的TopLocCounter；ATP只有当检测到同一个中断中VPB寄存器的Top-loc和BMR信号同时为True时，才设置本中断的OdometerImm.TopLocValid和本周期的BeaconMsgReady为True，并将信标寄存器中的数据存储到BeaconMsgByte[MAX_BEACON_DATA_SIZE]中。
+其中，由于上下模块同步算法，可能出现两个第0中断的情况，此时如果第一个第0中断中读到了VPB的TopLocValid，则第二个第0中断不覆盖该Top-loc信息。
+在每周期开始，清除BeaconMsgReady和TopLocCounter。
+In the interrupt, when the TopLocValid detected by VPB board regarded as True, OdometerImm.TopLocValid and BeaconMsgReady set as True. Adding TopLocCounter, the data from beacon savor is saved into BeaconMsgByte[MAX_BEACON_DATA_SIZE].
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0130], [iTC_CC-SyAD-0968], [iTC_CC_ATP_SwHA-0180], [iTC_CC_ATP_SwHA-0231], [iTC_CC_VLE-2-VPB-2-SyID-0028]
+[End]
+[iTC_CC_ATP-SwRS-0557]
+SensorTestFlag，位于CPU1的ATP软件判断是否需进行传感器测试的标志。
+判断连续SENSOR_TEST_START_TIME时间VPB寄存器CBKWrite.CogCounterReg未发生变化；
+且之前SensorTestFlag为False；
+且当前WheelFilteredStopped为False。
+则位于VLE-2板CPU1的ATP软件，需设置SensorTestFlag为True，并将其发送给位于CPU2的ATP软件。
+SensorTestFlag regarded as the symbol whether ATP in CPU 1 needs to check the sensor. In the interval, if the value of CBKWrite.CogCounterReg is not changed in the continuous SENSOR_TEST_START_TIME, and the WheelFilteredStopped was False at last cycle, the ATP of CPU1 in VLE-2 board need to set SensorTestFlag as True and send the data to the ATP of CPU2.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0958], [iTC_CC_ATP_SwHA-0055]
+[End]
+[iTC_CC_ATP-SwRS-0558]
+对于VLE-2板上CPU1的ATP软件，如果判断上周期末时的SensorTestFlag为True，则从本周期开始，需在每次中断中按照既定测试序列设置OdometerImm.D1/D2/D3的值，并在相应中断中设置SensorTesting标志为True。
+在一个周期的中断中，应当每间隔1个中断发送一次D1/2/3全为POWER_ON；
+其余中断中，D1/2/3可为POWER_ON或POWER_OFF随机值。
+For the ATP of CPU1 in VLE-2 board, if it sets the SensorTestFlag of pervious end of cycle as True, it need to set the value of OdometerImm.D1/D2/D3 based on the settled sequence in each interrupt, and set the SensorTesting as True.
+D1/2/3 shall set to POWER_ON at every other interrupts;
+In other interrupt, D1/2/3 shall be set to pseudo random value.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0958], [iTC_CC_ATP_SwHA-0056], [iTC_CC_VLE-2-VPB-2-SyID-0025]
+[End]
+[iTC_CC_ATP-SwRS-0559]
+对于VLE-2板CPU-2的ATP软件，如果收到来自CPU1的SensorTestFlag为True时，需通过读取VPB-2板的D1/2/3寄存器，获取当前测试的D1/2/3值。
+For the ATP of CPU2, if the SensorTestFlag from CPU1 is True, it needs to read the D1/2/3 registers of VPB-2 board and obtain the current testing value of D1/2/3.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0958], [iTC_CC_VLE-2-VPB-2-SyID-0026]
+[End]
+[iTC_CC_ATP-SwRS-0115]
+在传感器测试过程中，对于VLE-2板的2个CPU上的ATP软件，均需检测收到的C1/2/3三路传感器测试结果与上次中断中的结果是否一致，依次判断编码里程计传感器状态A1，A2和A3：
+During the sensor test performing, both ATP in the two CPUs of VLE-2 shall detect the consistency of the test result according to the state of C1/2/3 in the two continuous interrupt. Accordingly, ATP determines the state of three sensors: A1, A2, A3.
+在中断i中，用于判断单个的传感器1/2/3是处于SENSOR_CONDUCT还是SENSOR_BLOCKED状态，用Ai表示，条件如下：
+if D(i-1)= POWER_ON & Ci=LOW_LEVEL，Ai = SENSOR_BLOCKED
+if D(i-1)= POWER_ON & Ci=HIGH_LEVEL，Ai = SENSOR_CONDUCT
+if D(i-1)= POWER_OFF & Ci=LOW_LEVEL，保持上次测试的状态，Ai = Ai(t-1) 
+if D(i-1)= POWER_OFF & Ci=HIGH_LEVEL，Ai = SENSOR_WRONG
+In the interrupt i, the rules to determine whether the state of a sensor Ai is SENSOR_CONDUCT or SENSOR_BLOCK are as follows:
+if D(i-1)= POWER_ON & Ci=LOW_LEVEL，Ai = SENSOR_BLOCKED
+if D(i-1)= POWER_ON & Ci=HIGH_LEVEL，Ai = SENSOR_CONDUCT
+if D(i-1)= POWER_OFF & Ci=LOW_LEVEL，keeps Ai as last status: Ai = Ai(t-1) 
+if D(i-1)= POWER_OFF & Ci=HIGH_LEVEL，Ai = SENSOR_WRONG
+根据上述三个传感器的判断结果，判断编码里程计的状态，条件如下：
+A1/2/3中有任意一个为SENSOR_WRONG，则编码里程计错误，设置本中断的OdometerImm.TestResult为TEST_INCONSISTENT；
+A1/2/3全都为SENSOR_CONDUCT状态，则编码里程计错误，设置本中断的OdometerImm.TestResult为TEST_INCONSISTENT；
+A1/2/3全都为SENSOR_BLOCKED状态，则编码里程计错误，设置本中断的OdometerImm.TestResult为TEST_INCONSISTENT；
+A1/2/3全都与上次中断中的A1/2/3状态一致，则认为里程计所在车轴静止，设置本中断的OdometerImm.TestResult为TEST_STOPPING；
+如果中断在TEST_STOPPING状态超过SENSOR_TEST_IMMOBILE_THRESHOLD时间，则认为里程计完全静止，ATP设置此中断的OdometerImm.TestResult为TEST_IMMOBILE。
+A1/2/3中有任意一个的状态与上次中断中的状态不一致，则认为里程计所在车轴移动，设置本中断的OdometerImm.TestResult为TEST_FLOATING。
+Based on the above three sensors’ status A1/2/3, ATP determines the status of the odometer as following conditions:
+If any one of A1/2/3 is SENSOR_WRONG, then ATP consider the odometer as error in this interrupt and set the OdometerImm.TestResultas TEST_INCONSISTENT;
+If all of A1/2/3 are SENSOR_CONDUCT, then ATP consider the odometer as error in this interrupt and set the OdometerImm.TestResultas TEST_INCONSISTENT;
+If all of A1/2/3 are SENSOR_BLOCKED, then ATP consider the odometer as error in this interrupt and set the OdometerImm.TestResultas TEST_INCONSISTENT;
+If all of A1/2/3 are as same as the result at last interrupt respectively, then ATP consider the odometer as stop in this interrupt and set the OdometerImm.TestResultas TEST_STOPPING;
+If the TEST_STOPPING has lasted more than SENSOR_TEST_IMMOBILE_THRESHOLD, the ATP consider the odometer standstill, and set OdometerImm.TestResultas TEST_IMMOBILE;
+If any one of A1/2/3 is different with the result at last interrupt, then ATP consider the odometer rolling, and set the OdometerImm.TestResultas TEST_FLOATING.
+当检测到TEST_INCONSISTENT或者TEST_FLOATING时，停止传感器测试，设置当前中断的OdometerImm.SensorTesting标志为False，并设置本周期的SensorTestFlag为False。
+When the odometer test result is either TEST_INCONSISTENT or TEST_FLOATING, ATP shall stop the sensor test and set OdometerImm.SensorTesting as False for this interrupt, and set SensorTestFlag as False for this cycle.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149], [iTC_CC-SyAD-0958], [iTC_CC_ATP_SwHA-0035], [iTC_CC_ATP_SwHA-0058]
+[End]
+NOTES：
+由于设计限制，只有VPB-2板的上模块向传感器发送D1/2/3测试序列，同时将该测试序列转发给VPB-2板的下模块，供VLE-2板的CPU2读取。VPB-2板上下模块对于传感器测试结果C1/2/3的处理是一致的。
+Because of the design restriction, only the FPGA1 in the VPB-2 board can send the testing sequence D1/2/3 to the sensor, and meanwhile the FPGA1 will forward the info to the FPGA2 in the VPB-2 so that the CPU2 in the VLE-2 can read. Both of the FPGA in the VPB-2 board will have the same process for the sensor testing result C1/2/3.
+[iTC_CC_ATP-SwRS-0116]
+在指定时刻T_LOCK_ODOMETER，锁存一个主周期所有中断中的OdometerImm到数组LockedOdometer[ATP_INTERRUPT_NB ]中，其下标为所在中断的ImmediateNb；并使用LockedBeaconMsgReady，LockedTopLocCounter和LockedBeaconMsgByte分别锁存BeaconMsgReady，TopLocCounter和BeaconMsgByte的值供主任务使用。
+In the specific T_LOCK_ODOMETER, the OdometerImm of all intervals need to be saved into LockedOdometer[ATP_INTERRUPT_NB] with the index as ImmediateNb; The value of BeaconMsgReady, TopLocCounter and BeaconMsgByte should be recorded by using LockedBeaconMsgReady, LockedTopLocCounter and LockedBeaconMsgBytefor the main task.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0130]
+[End]
+[iTC_CC_ATP-SwRS-0590]
+IdenticalLockedOdometer，上下CPU模块的ATP应当交互上周期中断中锁存的VPB信息，并遵循以下规则进行同步：
+对于CogCounter信息：
+相同中断中若CogCounter不同，则取较大的作为同步后该中断的结果；
+里程计齿号与齿数取值相同CPU的值。
+对于TopLocValid信息：
+ATP应检查top-loc发生时VPB锁存的门闩寄存器锁存值CalCogCounter是否在该中断的CogCounter和上个中断的CogCounter之间，若不在上述范围之间，则认为
+top-loc无效；如果上下模块相差1个中断，则取前一个中断作为计算CogPositionBeforeTopLoc的依据，而后一个中断作为计算CogPositionAfterTopLoc的依据；
+如果两个TopLocValid相差超过1个中断，则ATP认为该top-loc无效。
+The ATP software in different CPUs shall synchronize the information get from the VPB board, with following rules: 
+For CogCounter:
+If the CogCounter read by two CPUs are different at the same interrupt, ATP shall take the large one as the result;
+ATP shall use the CPU's CogCode as same as CogCounter.
+For TopLocValid:
+Only
+ the cog counter latched by TOPLOC is between the before and after cog counter , TOPLOC is considered validIf the top-loc happened in adjacent interrupt between two CPUs, the former one shall use to calculate the CogPositionBeforeTopLoc, and the latter to calculate the CogPositionAfterTopLoc;
+If the top-loc difference are more than one interrupt, ATP shall consider it as invalid.
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source =[iTC_CC_ATP_SwHA-0232], 
+[iTC_CC-SyAD-1438][End]

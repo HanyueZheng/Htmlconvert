@@ -1,0 +1,84 @@
+<p>ATP支持两车的连挂，如Figure 55所示，之前独立运行的两列车，可连挂组成一列车后运行。根据与车辆的接口协议，连挂后车辆听从激活端列车的两个CC控制。例如Figure 55，连挂后激活Train I的END1，则所在Train I的两个CC互为冗余控车；反之，若激活Train II的END2端，则由Train II的两个CC控车。对于非激活端的两个CC，依然照常工作，但一般无法采集车辆输入，车辆也不响应其输出。
+Figure 55 Train Coupled Status
+除去Figure 55所示是两列车的END1-END2之间连挂外，还有可能END1-END1连挂和END2-END2连挂。由于连挂方式与ATP的定位有关，因此ATP需判断车辆的连挂状态与TrainType是否一致，只有在一致状态下才能进行正常定位和运行。如果连挂状态发生变化，ATP会根据连挂状态计算新的TrainType并将其写入Dataplug，需重启后重新读入使用。
+[iTC_CC_ATP-SwRS-0075]
+CoupledByEnd1或CoupledByEnd2，列车两端连挂其他车辆。如果该项目未配置连挂输入的采集，则认为列车未与其他车连挂。其状态来自于项目可配置的列车输入采集。
+CoupledByEnd1 or CoupledByEnd2 shows that both ends of train connect with other trains. If the project is not configured with the capture of coupling input, it is certain that the train does not connect with other trains.</p>
+<pre><code>	def CoupledByEnd1(k):
+	    return Offline.GetCoupledByEnd1(k)
+	def CoupledByEnd2(k):
+	    return Offline.GetCoupledByEnd2(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0193], [iTC_CC-SyAD-0211], [iTC_CC-SyAD-0338], [iTC_CC-SyAD-1003], [iTC_CC_ATP_SwHA-0189]
+[End]
+[iTC_CC_ATP-SwRS-0802]
+TrainNotCoupled，列车未与其他车辆连挂。</p>
+<pre><code>	def TrainNotCoupled(k):
+	    return Offline.GetTrainNotCoupled(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD
+-1439][End]
+[iTC_CC_ATP-SwRS-0789]
+TrainCoupledType，根据项目配置，获取当前列车的连挂类型。支持以下四种连挂类型：
+TRAIN_COUPLED_UNKNOWN，当前连挂状态无效；
+TRAIN_NO_COUPLED，列车未连挂；
+TRAIN_COUPLED_END1，列车END_1端连挂；
+TRAIN_COUPLED_END2，列车END_2端连挂。
+规则如下：</p>
+<pre><code>	def TrainCoupledType(k):
+	    if (TrainNotCoupled(k)
+	        and not TrainCoupledByEnd1(k)
+	        and not TrainCoupledByEnd2(k)):
+	        return TRAIN_NO_COUPLED
+	    elif (not TrainNotCoupled(k)
+	        and TrainCoupledByEnd1(k)
+	        and not TrainCoupledByEnd2(k)):
+	        return TRAIN_COUPLED_END1
+	    elif (not TrainNotCoupled(k)
+	        and not TrainCoupledByEnd1(k)
+	        and TrainCoupledByEnd2(k)):
+	        return TRAIN_COUPLED_END2
+	    else:
+	        return TRAIN_COUPLED_UNKNOWN
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD
+-1439][End]
+NOTES:
+配置数据中的TrainNotCoupled，TrainCoupledByEnd1和TrainCoupledByEnd2应考虑VIOM消息的有效性
+对于单头CC就能采集两端驾驶室连挂状态的项目，两端的VIOM消息中至少有一个有效即可；
+对于单头CC仅采集本端连挂状态的项目，两端VIOM消息必须全有效，才能判断连挂状态有效。
+当不满足上述条件，即VIOM消息无效时，TrainCoupledType应当是TRAIN_COUPLED_UNKNOWN状态。
+[iTC_CC_ATP-SwRS-0790]
+CoupledTypeInconsistent，比较列车类型与当前列车的连挂类型是否一致。
+初始化时，该值为False；
+判断列车类型TrainType与连挂类型TrainCoupledType是否一致：
+若不一致，则设置该值为True；
+否则，设置该值为False
+其他情况，保持不变。
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD
+-1440][End]
+[iTC_CC_ATP-SwRS-0792]
+MatchRebootCondition，是否由于连挂类型改变而设置ATP重启。
+初始化时，MatchRebootCondition为False；
+当满足以下条件后，ATP将计算新的列车类型TrainType并写入Dataplug，同时设置MatchRebootCondition为True，请求重启ATP。
+CoupledTypeInconsistent为True；
+且TrainCoupledType不是TRAIN_COUPLED_UNKNOWN；
+且列车处于TrainFilteredStopped状态。
+其他情况，MatchRebootCondition保持不变。
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD
+-1440][End]</p>

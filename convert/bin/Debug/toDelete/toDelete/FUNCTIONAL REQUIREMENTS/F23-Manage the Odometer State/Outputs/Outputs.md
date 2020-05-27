@@ -1,0 +1,11 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|OdometerState|√|√| REF ENUM_ODOMETER_STATE \h ENUM_ODOMETER_STATE|
+|ValidWheelKinematic|√|√| REF BOOLEAN BOOLEAN|
+|WheelMaxSpeed|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|WheelMaximumMovement|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|WheelMinSpeed|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|WheelMinimumMovement|√|√| REF NUMERIC_32 \h NUMERIC_32|
+

@@ -1,0 +1,9 @@
+<p>对于ATP，由于仅使用所在车头的里程计作为计算位移和速度的依据，因此必须防止该里程计所在的车轴由于制动而抱死，从而导致错误判断列车静止的危险。所以，需引入独立的两路参考速度，即当通过里程计测得“列车静止”，而参考速度显示“列车运动”时，即可判断出里程计所在车轴锁闭。两路参考速度信息OdometerRef_1和OdometerRef_2分别来自列车的测速系统，和远端ATP的里程计信息，其结构为ST_ODOMETER_REF：
+As ATP calculate the movement and speed only based on the axle odometer assembled, it is necessary to avoid the situation that this axle is locked during the train braking, which may cause the danger that ATP judge the train status as stillness by mistake. Therefore, ATP need to adopt two independent sources of reference speed i.e. when the ATP detected the train is still through the odometer, while the referenced speed showed that the train is running, ATP can conclude that the wheel with odometer is blocked. The OdometerRef_1 and OdometerRef_2 are coming from the speed measuring system of the train and the odometer of the remote ATP respectively. The reference speed structure shows as below:</p>
+<p>|Identification|Logical Type|Description|
+|-----|
+|ST_ODOMETER_REF|||
+||PossiblyDisabled| REF BOOLEAN \h  * MERGEFORMAT BOOLEAN|该参考速度可能失效|
+||PossiblyEnabled| REF BOOLEAN \h  * MERGEFORMAT BOOLEAN|该参考速度可能有效|
+||OutOfOrder| REF BOOLEAN \h  * MERGEFORMAT BOOLEAN|该参考速度不可用|
+||Contradictory| REF BOOLEAN \h  * MERGEFORMAT BOOLEAN|该参考速度与ATP测速不一致|</p>

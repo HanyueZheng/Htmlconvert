@@ -1,0 +1,91 @@
+﻿
+[iTC_CC_ATP-SwRS-0191]
+SlipSlideDetected，是否检测到打滑空转
+For calibration validation purpose, ATP shall consider that slip/side detected if:
+motion overestimation modeling status is not coasting nor braking,
+or motion underestimation modeling status is not coasting nor motoring.
+```
+	SlipSlideDetected(k)
+	 = ((MotionOverEstimationState(k) !=  COASTING
+	      and MotionOverEstimationState(k) !=  BRAKING)
+	   or (MotionUnderEstimationState(k) !=  COASTING
+	        and MotionUnderEstimationState(k) !=  MOTORING))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0145], [iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0088]
+[End]
+[iTC_CC_ATP-SwRS-0228]
+SlipSlideModellingFault，打滑补偿模型错误
+When the overestimation or underesimation state is SKIDDING, or the motion signed changed in BRAKING or SLIDING state, ATP shall consider the overestimation model as fault.
+```
+	def SlipSlideModellingFault(k):
+	    if (MotionOverEstimationState(k) is SKIDDING
+	         or MotionUnderEstimationState(k) is SKIDDING
+	
+	
+	         or ((MotionOverEstimationState(k-1) is BRAKING
+	               or MotionOverEstimationState(k-1) is SLIDING)
+	              and MaxMotionOdometerSignChanged(k)))):
+	        return True
+	    elif (MotionOverEstimationState(k-1) is COASTING
+	           and MotionUnderEstimationState(k-1) is COASTING)
+	        return False
+	    else:
+	        return SlipSlideModellingFault(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0148], [iTC_CC-SyAD-0192], [iTC_CC-SyAD-1159], [iTC_CC_ATP_SwHA-0089]
+[End]
+[iTC_CC_ATP-SwRS-0229]
+ValidSlipSlideModelling，打滑补偿模型有效
+If overestimation model was fault, then ATP considers the model invalid. 
+```
+	def ValidSlipSlideModelling(k):
+	    if (ValidSlipSlideModelling(k-1))
+	        return not SlipSlideModellingFault(k)
+	    elif ((MotionOverEstimationState(k) is COASTING)
+	            and MotionUnderEstimationState(k) is COASTING
+	            and WheelFilteredStopped(k))
+	        return True
+	    else:
+	        return ValidSlipSlideModelling(k-1)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0148], [iTC_CC-SyAD-0192], [iTC_CC-SyAD-1159], [iTC_CC_ATP_SwHA-0090]
+[End]
+[iTC_CC_ATP-SwRS-0797]
+MaximumSScompensatedMotion，经过打滑空转补偿后的最大位移
+```
+	def MaximumSScompensatedMotion(k):
+	    if ValidSlipSlideModelling(k):
+	        return (sign(OverestimatedMotionMax(k))
+	                 * max(abs(OverestimatedMotionMax(k)), abs(UnderestimatedMotionMax(k)))
+	    else:
+	        return WheelMaximumMovement(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-
+0148][End]
+[iTC_CC_ATP-SwRS-0798]
+MinimumSScompensatedMotion，经过打滑空转补偿后的最小位移
+```
+	def MinimumSScompensatedMotion(k):
+	    if ValidSlipSlideModelling(k):
+	        return (sign(OverestimatedMotionMin(k))
+	                 * min(abs(OverestimatedMotionMin(k)), abs(UnderestimatedMotionMin(k)))
+	    else:
+	        return WheelMinimumMovement(k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-
+0148][End]

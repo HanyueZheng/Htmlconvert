@@ -1,0 +1,90 @@
+﻿
+[iTC_CC_ATP-SwRS-0657]
+TrainIncludedInSleepingZone，列车停车后定位完全所在的Sleeping zone
+```
+	def TrainIncludedInSleepingZone(k):
+	    if (not TrainFilteredStopped(k)):
+	        return None
+	    else:
+	        for SleepZone in (TrackMap.AllSingsBtwTwoLocs(SGL_SLEEPING_ZONE,
+	                                                       TrackMap.BlockOrigin(TrainRearLocation(k).Min),
+	                                                       TrainFrontLocation(k).Max)):
+	            if (TrackMap.LocationInZone(TrainFrontLocation(k).Max,
+	                                             SleepZone.Location,
+	                                             SleepZone.Length,
+	                                             SleepZone.Orientation)
+	                and TrackMap.LocationInZone(TrainRearLocation(k).Min,
+	                                                 SleepZone.Location,
+	                                                 SleepZone.Length,
+	                                                 SleepZone.Orientation)):
+	                return SleepZone
+	            else:
+	                continue:
+	        return None
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1199]
+[End]
+NOTES：
+为避免重复写入记忆定位导致存储空间寿命缩短，由设计保证ATP仅在完全进入休眠区并停车后写一次记忆定位（反之，不满足该条件时，也只清除一次记忆定位）。此外，在列车上电后还未移动时，无需重新写入记忆定位（因为此时用的还是原来记忆的定位）。
+[iTC_CC_ATP-SwRS-0659]
+WritingMemLocRequest，是否写入记忆定位。
+Only when train has moved and filtered stopped in sleeping zone, can ATP writing memorized location information.
+```
+	def WritingMemLocRequest(k):
+	    return (TrainHasMoved(k)
+	              and TrainIncludedInSleepingZone(k) is not None
+	              and TrainLocatedOnKnownPath(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1199], [iTC_CC_ATP_SwHA-0249]
+[End]
+[iTC_CC_ATP-SwRS-0660]
+ClearingMemLocRequest，是否清除记忆定位
+When train has moved and does not fulfill the condition of writing memory location, ATP shall clear memorized location information.
+```
+	def ClearingMemLocRequest(k):
+	    return (not WritingMemLocRequest(k) and TrainHasMoved(k))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-1199], [iTC_CC-SyAD-1204], [iTC_CC_ATP_SwHA-0250]
+[End]
+[iTC_CC_ATP-SwRS-0661]
+MemLocWritten，写入记忆定位的内容
+```
+	def MemLocWritten(k):
+	    if (WritingMemLocRequest(k)):
+	        MemLocWritten.MemLocVersion = MEM_LOCATION_VERSION
+	        MemLocWritten.SleepAreaId = TrainIncludedInSleepingZone(k).Id
+	        MemLocWritten.SleepAreaVersion = TrainIncludedInSleepingZone(k).Version
+	        MemLocWritten.TrainType = TrainType(k)
+	        MemLocWritten.TrainId = SubSystemId(k)
+	        MemLocWritten.Ext2 = TrainLocation.Ext2
+	        MemLocWritten.Ext1 = TrainLocation.Ext1
+	        MemLocWritten.Uncertainty = TrainLocation.Uncertainty
+	        MemLocWritten.TrainLength = ATPsetting.LocationTrainLength
+	    elif (ClearingMemLocRequest(k)):
+	        MemLocWritten.MemLocVersion = None
+	        MemLocWritten.SleepAreaId = None
+	        MemLocWritten.SleepAreaVersion = None
+	        MemLocWritten.TrainType = None
+	        MemLocWritten.TrainId = None
+	        MemLocWritten.Ext2 = None
+	        MemLocWritten.Ext1 = None
+	        MemLocWritten.Uncertainty = None
+	        MemLocWritten.TrainLength = None
+	    else:
+	        MemLocWritten = MemLocWritten(k-1)
+	    return MemLocWritten
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-1201], [iTC_CC_ATP_SwHA-0249], [iTC_CC_ATP_SwHA-0250]
+[End]

@@ -1,0 +1,3 @@
+﻿
+由ATP根据CCNV的请求，判断当前是否与指定联锁建立或结束通信。在通信建立成功后，ATP应当将来自CCNV的PSD控制命令由安全通信协议发送给联锁。ATP软件最多同时与联锁建立MAX_CONNECTED_PSD_NB个通信连接。
+According to the intersection condition between train location and PSD area, ATP shall judge to establish or end the communication with the specified interlock devices. After establishment succeeded, ATP should send the PSD order come from CCNV to the interlock through safe communication protocols. ATP can conduct the MAX_CONNECTED_PSD_NB with interlock at the same time.

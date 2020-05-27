@@ -1,0 +1,239 @@
+<p>来自里程计测得的车轮运动学参数，经过打滑补偿和轴锁判断处理后，即可得到安全的列车运动学参数，供ATP的其他功能使用。
+After the overestimation of the sliding effect and consideration of wheel braking decocted by odometers, ATP can calculate the train kinematic parameters which will used by other functions.
+对于配置有多普勒雷达的项目，可用雷达测速值修正里程计受所在车轮打滑、空转的影响，提高运营效率。里程计和雷达的融合方案如下：
+当雷达不可用，仅使用里程计的位移值；
+若判断里程计打滑控制模型失效（SKIDDING状态），则使用雷达的位移值；
+其他情况，使用雷达和里程计最大最小位移的交集。
+[iTC_CC_ATP-SwRS-0243]
+ValidTrainKinematic，列车位移速度计算有效的条件
+Train kinematic information shall declare invalid if at least one of following condition is True:
+odometer kinematic is not valid,
+or neither radar speed nor over-estimation modeling of train movement is valid,
+or train movement and wheel movement has been detected de-correlated.</p>
+<pre><code>	def ValidTrainKinematic(k):
+	    return ((ValidSlipSlideModelling(k)
+	              or RadarSpeedValid(k))
+	            and WheelTrainKinematicCorrelation(k)
+	            and ValidWheelKinematic(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0136], [iTC_CC-SyAD-0186], [iTC_CC-SyAD-0192], [iTC_CC-SyAD-0364], [iTC_CC-SyAD-0960], [iTC_CC-SyAD-0137], [iTC_CC-SyAD-1135], [iTC_CC-SyAD-1159], [iTC_CC_ATP_SwHA-0091], [iTC_CC_ATP_SwHA-0092], [iTC_CC_ATP_SwHA-0238]
+[End]
+[iTC_CC_ATP-SwRS-0212]
+MaximumTrainMotion，根据来自里程计或雷达的信息，计算列车的周期最大位移。该值为矢量，向END_1方向为正，END_2方向为负。</p>
+<pre><code>	def MaximumTrainMotion(k):
+	    if (not RadarSpeedValid(k)):
+	        return MaximumSScompensatedMotion(k)
+	    elif (not ValidSlipSlideModelling(k)):
+	        return RadarMotionMax(k)
+	    else:
+	        return (min(abs(MaximumSScompensatedMotion(k)), abs(RadarSpeedMax(k)))
+	                * sign(MaximumSScompensatedMotion(k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=
+[End]
+[iTC_CC_ATP-SwRS-0736]
+MinimumTrainMotion，根据来自里程计或雷达的信息，计算列车的周期最小位移。该值为矢量，向END_1方向为正，END_2方向为负。</p>
+<pre><code>	def MinimumTrainMotion(k):
+	    if (not RadarSpeedValid(k)):
+	        return MinimumSScompensatedMotion(k)
+	    elif (not ValidSlipSlideModelling(k)):
+	        return RadarMotionMin(k)
+	    else:
+	        return (max(abs(MinimumSScompensatedMotion(k)), abs(RadarSpeedMin(k)))
+	                * sign(MinimumSScompensatedMotion(k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=
+[End]
+[iTC_CC_ATP-SwRS-0244]
+TrainStopped, train shall consider strictly stopped if and only if:
+wheel is detected strictly stopped,
+and train kinematic elaboration is valid,
+and wheel is not detected sliding.</p>
+<pre><code>	TrainStopped(k)
+	 = ((WheelStopped(k) == True)
+	    and ((MotionOverEstimationState == COASTING)
+	           or (MotionOverEstimationState == BRAKING))
+	    and (ValidTrainKinematic(k) == True))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0150], [iTC_CC-SyAD-0364], [iTC_CC_ATP_SwHA-0093]
+[End]
+[iTC_CC_ATP-SwRS-0245]
+TrainFilteredStopped，列车准静止判断。
+Train shall consider stopped with the tolerance of one cog detection if:
+wheel is detected at filtered stop,
+and train kinematic elaboration is valid,
+and wheel is not detected sliding.</p>
+<pre><code>	TrainFilteredStopped(k)
+	 = ((WheelFilteredStopped(k) == True)
+	    and ((MotionOverEstimationState == COASTING)
+	          or (MotionOverEstimationState == BRAKING))
+	    and (ValidTrainKinematic(k) == True))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0151], [iTC_CC-SyAD-0214], [iTC_CC-SyAD-0364], [iTC_CC-SyAD-0152], [iTC_CC_ATP_SwHA-0094]
+[End]
+[iTC_CC_ATP-SwRS-0638]
+TrainHasMoved，表明自上电以后，列车是否移动过。</p>
+<pre><code>	def TrainHasMoved(k):
+	    if (Initialization):
+	        return False
+	    elif (not TrainHasMoved(k-1)
+	          and not TrainFilteredStopped(k)
+	          and (TeethCounter(k) != TeethCounter(k-1))):
+	        return True
+	    else:
+	        return TrainHasMoved(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1204], [iTC_CC_ATP_SwHA-0239]
+[End]
+[iTC_CC_ATP-SwRS-0639]
+TrainMinSpeed，计算列车最小速度。</p>
+<pre><code>	def TrainMinSpeed(k):
+	    if (OdometerSpeedAvailable(k)):
+	        return max(0, (round.floor(abs(MinimumTrainMotion(k) / ATP_CYCLE_TIME))
+	                       + ((ATPsetting.BrakingMinAcc - ATPsetting.MaxGradientAcc)
+	                           * ATP_CYCLE_TIME / 2)))
+	    else:
+	        return 0
+</code></pre>
+<p>其中：
+ATPsetting.BrakingMinAcc，为列车制动最小减速度，为负值（即绝对值最大）；
+ATPsetting.MaxGradientAcc，为线路中最大坡度加速度，为正值。
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0146]
+[End]
+[iTC_CC_ATP-SwRS-0246]
+TrainMaxSpeed，考虑打滑过估补偿的列车最大速度，该速度为非负值。
+According to the matching of odometer cog counter and code, maximum train speed shall computed using the followings expressions:</p>
+<pre><code>	def TrainMaxSpeed(k):
+	    if (OdometerSpeedAvailable(k)):
+	        return (round.ceil(abs(MaximumTrainMotion(k) / ATP_CYCLE_TIME))
+	                + ((ATPsetting.TractionMaxAcc[TrainMinSpeed(k)] + ATPsetting.MaxGradientAcc)
+	                   * ATP_CYCLE_TIME / 2))
+	    else:
+	        return round.ceil(abs(MaximumTrainMotion(k)) / ATP_CYCLE_TIME)
+</code></pre>
+<p>其中：
+ATPsetting.TractionMaxAcc，表示列车在不同车速下的最大牵引力加速度
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0146], [iTC_CC-SyAD-0217], [iTC_CC_ATP_SwHA-0095]
+[End]
+NOTES:
+如果TrainMinSpeed已经大于配置数据ATPsetting.TractionMaxAcc表中的最大速度值，则应当取ATPsetting.TractionMaxAcc中设置的最大速度所对应的牵引加速度，作为当前计算使用的最大牵引加速度。根据车辆牵引特性，高速情况牵引能力随着速度的增加而减小，因此，取比当前车速低的速度所对应的牵引加速度是导向安全的。
+[iTC_CC_ATP-SwRS-0640]
+NewBeaconObtained，表明收到了可用的RB</p>
+<pre><code>	def NewBeaconObtained(k):
+	    if (BeaconMessageReceive(k)
+	        and ValidTrainKinematic(k)
+	        and not TrainFilteredStopped(k)
+	        and OdometerState(k) is INITIALIZED):
+	        NewBeaconObtained = True
+	    else:
+	        NewBeaconObtained = False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0177], [iTC_CC-SyAD-0196]
+[End]
+[iTC_CC_ATP-SwRS-0641]
+BeaconBeforeLastObtained，记录读到的次新的信标</p>
+<pre><code>	def BeaconBeforeLastObtained(k):
+	    if (Initialization):
+	        BeaconBeforeLastObtained = None
+	    elif (NewBeaconObtained(k)):
+	        BeaconBeforeLastObtained = BeaconLastObtained(k-1)
+	    else:
+	        BeaconBeforeLastObtained = BeaconBeforeLastObtained(k-1)
+	    return BeaconBeforeLastObtained
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0177], [iTC_CC-SyAD-0196]
+[End]
+[iTC_CC_ATP-SwRS-0642]
+BeaconLastObtained，记录读到的最新的信标</p>
+<pre><code>	def BeaconLastObtained(k):
+	    if (Initialization):
+	        BeaconLastObtained = None
+	    elif (NewBeaconObtained(k)):
+	        BeaconLastObtained = TrackMap.Beacons[LockedBeaconMsgByte.Id]
+	    else:
+	        BeaconLastObtained = BeaconLastObtained(k-1)
+	    return BeaconLastObtained
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0177], [iTC_CC-SyAD-0196]
+[End]
+[iTC_CC_ATP-SwRS-0247]
+在本周期的里程计和测速信息有效的情况下，需要根据当前齿数和锁存的读到信标时的Top-loc信息，计算DistLastBeaconMax和DistLastBeaconMin，表示当前经过信标后已运行的最大最小距离。
+If a valid beacon with top-loc received between cycle k-1 and k, then minimum and maximum distance ran since top-loc shall evaluate as the difference between current teeth counter and recorded cog position just before or after top-loc. If there is no beacon received, ATP updates distances from last beacon using the train movements.</p>
+<pre><code>	if (NewBeaconObtained(k)):
+	    DistLastBeaconMin(k)= MinCogCalibration(k) * (TeethCounter(k)- CogPositionAfterTopLoc(k))
+	    DistLastBeaconMax(k)= MaxCogCalibration(k) * (TeethCounter(k)- CogPositionBeforeTopLoc(k))
+	else:
+	    DistLastBeaconMin = DistLastBeaconMin(k-1) + MinimumTrainMotion(k)
+	    DistLastBeaconMax = DistLastBeaconMax(k-1) + MaximumTrainMotion(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0182], [iTC_CC_ATP_SwHA-0097], [iTC_CC-SyAD-0183]
+[End]
+NOTES:
+根据里程计状态和列车位移方向，对列车运行方向的判断如下：
+如果里程计还未初始化，则不能判断出正确的里程计转动方向，即认为列车既向END_1也向END_2方向运行；
+否则，当里程计初始化后：
+如果列车最小位移为0，认为列车既不向END_1也不向END_2方向运行；
+如果列车最小位移大于0，则认为列车向END_1方向运行；
+如果列车最小位移小于0，则认为列车向END_2方向运行。
+[iTC_CC_ATP-SwRS-0635]
+End2RunningForward，根据车轮旋转方向，判断列车是否向END_2方向运行</p>
+<pre><code>	def End2RunningForward(k):
+	    if (OdometerState(k) is INITIALIZED):
+	        return (MaximumTrainMotion(k) &lt; 0)
+	    else:
+	        return True
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC_SyAD-0135], [iTC_CC_SyAD-0204], [iTC_CC_ATP_SwHA-0277]
+[End]
+[iTC_CC_ATP-SwRS-0758]
+End1RunningForward，根据车轮旋转方向，判断列车是否向END_1方向运行</p>
+<pre><code>	def End1RunningForward(k):
+	    if (OdometerState(k) is INITIALIZED):
+	        return (MaximumTrainMotion(k) &gt; 0)
+	    else:
+	        return True
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC_SyAD-0135], [iTC_CC_SyAD-0204], [iTC_CC_ATP_SwHA-0277]
+[End]</p>

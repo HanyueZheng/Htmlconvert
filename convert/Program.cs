@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HtmlAgilityPack;
 using System;
+using System.Text;
 
 namespace convert
 {
@@ -17,11 +18,57 @@ namespace convert
         static List<List<string>> txtPatentlist = new List<List<string>>();
         static void Main(string[] args)
         {
-            string path = "C:/Users/Hanyue Zheng/Desktop/case.html";
+            //string path = "case.html";
+            string dir = "./toDelete/toDelete/FUNCTIONAL REQUIREMENTS/";
+            List<string> filearr = new List<string>();
+            List<string> htmlarr = new List<string>();
+            List<string> htmlarr1 = getPath(dir, filearr, htmlarr);
+            List<string> headinglist = new List<string>();
+            
+            foreach (string html in htmlarr1)
+            {
+                int count = SubstringCount("\\", html);
+                string htmlstring = html + count.ToString();
+                headinglist.Add(htmlstring);
+            }
+            string path = "demo.html";
             Program.ParseHtml(path);
             ProcessTranslate();
+            string document = @" demo.docx";
+        }
 
-            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+        public static string ToHexString(string str)
+        {
+            byte[] btArr = Encoding.Default.GetBytes(str);
+            string strBuffer = Encoding.UTF8.GetString(btArr);
+            return strBuffer;
+        }
+
+        static int SubstringCount(string a, string b)
+        {
+            int count = 0;
+            int index = 0;
+
+            while ((index = b.IndexOf(a, index)) != -1)
+            {
+                count++;
+                index = index + a.Length;
+            }
+            return count;
+        }
+
+        public static List<string> getPath(string dir, List<string> filearr, List<string> htmlarr)
+        {
+            DirectoryInfo Dir = new DirectoryInfo(dir);
+            foreach (DirectoryInfo d in Dir.GetDirectories()){
+                getPath(dir + d.ToString() + "\\", filearr, htmlarr);
+                filearr.Add(dir + d.ToString() + "\\");
+            }
+            foreach (FileInfo f in Dir.GetFiles("*.html*"))
+            {
+                htmlarr.Add(Dir + f.ToString());
+            }
+                return htmlarr;
         }
 
         public static void BookMark(string filepath)
@@ -81,23 +128,7 @@ namespace convert
         {
             HtmlDocument doc = new HtmlDocument();
             doc.Load(filepath);
-            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
-            var html =
-        @"<body>
-<h1><b>bold</b> heading</h1>
-<p>This is <br>italic paragraph</p>
-<img src='C:\Users\12773\Desktop\aa.png'/>
-<table><thead><tr><th>Item</th><th style='text-align:right'>Value</th></tr></thead><tbody><tr><td>Computer</td><td style='text-align:right'>$1600</td></tr><tr><td>Phone</td><td style='text-align:right'>$12</td></tr><tr><td>Pipe</td><td style='text-align:right'>$1</td></tr></tbody></table>
-<ul><li>List1<br>enterlist</li><li>List2<ul><li>List2-1</li></ul></li><li>List3</li></ul>
-<pre>
-<code class='lang - javascript'>
-function test() 
-{
-    console.log('Hello world!');
-}
-</code>
-</pre>
-</body>";
+            string document = @"demo.docx";
 
             //doc.LoadHtml(html);
             HtmlNode node = doc.DocumentNode.SelectSingleNode("//body");
@@ -112,16 +143,20 @@ function test()
             for (int i = 0; i < node.ChildNodes.Count(); i++)
             {
                 HtmlNode n = node.ChildNodes[i];
-                if (n.InnerHtml != "\r\n")
+                if (n.InnerHtml != "\r\n" && n.InnerHtml != "\r\n\t")
                 {
                     Node tnode = new Node();
                     var nodename = n.Name;
                     tnode.setNodename(nodename);
                     tnode.setParent(pnode);
                     pnode.AddChild(tnode);
-                    if (nodename == "h1" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
+                    if (nodename == "h1"|| nodename == "h2"|| nodename == "h3" || nodename == "p" || nodename == "img" || nodename == "table" || (nodename == "ul" && tnode.getParent().getNodename() != "li" || nodename == "pre"))
                     {
                         Node teminal = new Node();
+                        if (nodename == "table")
+                        {
+
+                        }
                         teminal.setNodename("\n");
                         pnode.AddChild(teminal);
                        
@@ -143,7 +178,7 @@ function test()
 
         public static void HtmlConvert(Node n1)
         {
-            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+            string document = @"demo.docx";
             string nodename = n1.getNodename();
             List<Node> nlist = n1.getChilds();
             int count = nlist.Count;
@@ -170,7 +205,7 @@ function test()
                     break;
 
                 case "#text":
-                    string txt = n1.getText();
+                    string txt = ToHexString(n1.getText());
                     GetTxtParentList(n1);
                     break;
 
@@ -215,7 +250,7 @@ function test()
 
         public static void ProcessTranslate()
         {
-            string document = @"C:\Users\Hanyue Zheng\Desktop\demo.docx";
+            string document = @"demo.docx";
             int begintag = 0;
             int endtag = 0;
             int listcount = 1;
@@ -363,6 +398,19 @@ function test()
                 else if (txtPatentlist[begintag].Contains("h1"))
                 {
                     SetTitle(begintag, endtag, 1.ToString(), document);
+                    //string path = @"demo.docx";
+                    //CreateWordDocumentUsingMSWordStyles(begintag, endtag, path, "E:\\Microsoft Office\\Office16\\2052\\QuickStyles\\Default.dotx");
+
+                }
+
+                else if (txtPatentlist[begintag].Contains("h2"))
+                {
+                    SetTitle2(begintag, endtag, 2.ToString(), document);
+                }
+
+                else if (txtPatentlist[begintag].Contains("h3"))
+                {
+                    SetTitle3(begintag, endtag, 3.ToString(), document);
                 }
 
                 else
@@ -381,7 +429,7 @@ function test()
                         }
                         if (txtPatentlist[begintag][0] != "endtag")
                         {
-                            Text t = new Text(txtPatentlist[begintag][0]);
+                            Text t = new Text(ToHexString(txtPatentlist[begintag][0]));
                             t.Space = t.Space = new EnumValue<SpaceProcessingModeValues>(SpaceProcessingModeValues.Preserve);
                             
                             run.AppendChild(t);
@@ -412,6 +460,143 @@ function test()
                 begintag = endtag + 1;
             }
           
+        }
+
+       public static void CreateWordDocumentUsingMSWordStyles(int begintag, int endtag, string outputPath, string templatePath)
+        {
+            // create a copy of the template and open the copy
+            System.IO.File.Copy(templatePath, outputPath, true);
+
+            using (var document = WordprocessingDocument.Open(outputPath, true))
+            {
+                document.ChangeDocumentType(WordprocessingDocumentType.Document);
+
+                var mainPart = document.MainDocumentPart;
+                var settings = mainPart.DocumentSettingsPart;
+
+                var templateRelationship = new AttachedTemplate { Id = "relationId1" };
+                settings.Settings.Append(templateRelationship);
+
+                var templateUri = new Uri("c:\\anything.dotx", UriKind.Absolute); // you can put any path you like and the document styles still work
+                settings.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate", templateUri, templateRelationship.Id);
+
+                // using Title as it would appear in Microsoft Word
+                var paragraphProps = new ParagraphProperties();
+                paragraphProps.ParagraphStyleId = new ParagraphStyleId { Val = "Heading2" };
+
+                // add some text with the "Title" style from the "Default" style set supplied by Microsoft Word
+                var run = new Run();
+                run.Append(new Text("1.1.3"));
+
+                var paragraph = new Paragraph();
+                paragraph.Append(paragraphProps);
+                paragraph.Append(run);
+
+                mainPart.Document.Body.Append(paragraph);
+
+                mainPart.Document.Save();
+            }
+        }
+
+
+        public static void SetTitle2(int begintag, int endtag, string val, string document)
+        {
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+
+            StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+
+            if (part != null)
+            {
+                Style style = new Style()
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "Heading2",
+                    BasedOn = new BasedOn() { Val = "Normal" },
+
+                };
+                StyleName styleName1 = new StyleName() { Val = "heading 2" };
+                style.Append(styleName1);
+                style.Append(new PrimaryStyle());
+                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+
+                styleRunProperties1.Append(new RunFonts()
+                {
+                    ComplexScriptTheme = ThemeFontValues.MajorBidi,
+                    HighAnsiTheme = ThemeFontValues.MajorHighAnsi,
+                    EastAsiaTheme = ThemeFontValues.MajorEastAsia,
+                    AsciiTheme = ThemeFontValues.MajorAscii
+                });
+                styleRunProperties1.Append(new FontSize() { Val = "36" });
+                style.Append(styleRunProperties1);
+                part.Styles.Append(style);
+
+                Paragraph p = new Paragraph();
+                ParagraphProperties ppr = new ParagraphProperties();
+                ParagraphStyleId stid = new ParagraphStyleId() { Val = "Heading2" };
+                ppr.Append(stid);
+                p.Append(ppr);
+
+                for (; begintag < endtag; begintag++)
+                {
+                    Run run = p.AppendChild(new Run(new Text(ToHexString(txtPatentlist[begintag][0]))));
+                }
+
+                body.Append(p);
+                wordprocessingDocument.MainDocumentPart.Document.Save();
+
+                wordprocessingDocument.Close();
+            }
+        }
+
+        public static void SetTitle3(int begintag, int endtag, string val, string document)
+        {
+            WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
+            Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
+
+            StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+
+            if (part != null)
+            {
+                Style style = new Style()
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "Heading3",
+                    BasedOn = new BasedOn() { Val = "Normal" },
+
+                };
+                StyleName styleName1 = new StyleName() { Val = "heading 3" };
+                style.Append(styleName1);
+                style.Append(new PrimaryStyle());
+                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+
+                styleRunProperties1.Append(new RunFonts()
+                {
+                    ComplexScriptTheme = ThemeFontValues.MajorBidi,
+                    HighAnsiTheme = ThemeFontValues.MajorHighAnsi,
+                    EastAsiaTheme = ThemeFontValues.MajorEastAsia,
+                    AsciiTheme = ThemeFontValues.MajorAscii
+                });
+                styleRunProperties1.Append(new FontSize() { Val = "28" });
+                style.Append(styleRunProperties1);
+                part.Styles.Append(style);
+
+                Paragraph p = new Paragraph();
+                ParagraphProperties ppr = new ParagraphProperties();
+                ParagraphStyleId stid = new ParagraphStyleId() { Val = "Heading3" };
+                ppr.Append(stid);
+                p.Append(ppr);
+
+                for (; begintag < endtag; begintag++)
+                {
+                    Run run = p.AppendChild(new Run(new Text(ToHexString(txtPatentlist[begintag][0]))));
+                }
+
+                body.Append(p);
+                wordprocessingDocument.MainDocumentPart.Document.Save();
+
+                wordprocessingDocument.Close();
+            }
         }
 
         public static void SetTitle(int begintag, int endtag, string val, string document)
@@ -454,7 +639,7 @@ function test()
 
                 for (; begintag < endtag; begintag++)
                 {
-                    Run run = p.AppendChild(new Run(new Text(txtPatentlist[begintag][0])));
+                    Run run = p.AppendChild(new Run(new Text(ToHexString(txtPatentlist[begintag][0]))));
                 }
 
                 body.Append(p);
@@ -702,7 +887,7 @@ function test()
                 new InsideHorizontalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7},
                 new InsideVerticalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 7}
             );
-            TableWidth tableWidth = new TableWidth() { Width = "2300", Type = TableWidthUnitValues.Pct };
+            TableWidth tableWidth = new TableWidth() { Width = "2800", Type = TableWidthUnitValues.Pct };
             
             tableProp.Append( tableWidth, tbb);
             tb.AppendChild(tableProp);
@@ -724,7 +909,7 @@ function test()
                 TableRow tr = new TableRow();
                 for (int k = 0; k < colcount; k++)
                 {
-                    TableCell tc = new TableCell(new Paragraph(new Run(new Text(txtPatentlist[begintag][0]))));
+                    TableCell tc = new TableCell(new Paragraph(new Run(new Text(ToHexString(txtPatentlist[begintag][0])))));
                     tr.Append(tc);
                     begintag++;
                 }

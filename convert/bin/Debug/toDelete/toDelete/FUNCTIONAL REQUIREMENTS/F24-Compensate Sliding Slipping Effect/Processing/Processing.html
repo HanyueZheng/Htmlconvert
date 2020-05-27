@@ -1,0 +1,46 @@
+<p>由于编码里程计安装在列车的制动轴上，因此当列车制动时，钢轨和车轮之间有可能会发生“打滑”现象，导致通过里程计测得的车轮位移小于实际的列车位移（即车轮的转动速度慢于列车实际前进的速度）。为补偿这种情况，ATP软件根据里程计测得的加速度变化，对测得位移进行补偿，得到过估的列车“实际位移”，并据此过估列车的速度，从而保证安全。
+As the coded odometer installed on the train brake axle, there is maybe sliding phenomenon between rail and wheel when the train braking. So it will lead to the situation that the detected wheel movement is less than the actual train movement (i.e. the rolling speed of wheel is slower than the actual train speed). In order to avoid this situation, according to the variables of acceleration tested by odometer, ATP will over-estimate the movement and get the over-estimated actual train movement to estimate the train speed for safety consideration.
+里程计应尽量避免安装在列车的牵引轴上，若无法避免，则ATP还需对牵引时产生的空转进行补偿。即空转时，里程计测得的车轮转动速度要大于车体实际的移动速度。
+[iTC_CC_ATP-SwRS-0201]
+InstantaneousWheelAcceleration，在进行最大位移过估算法之前，需计算瞬时车轮加速度（为减少采样周期过短使得采样误差导致的加速度大幅变化，ATP使用相邻2个周期的算术平均加速度作为瞬时加速度）。
+When wheel motion and acceleration are measurable, then instantaneous acceleration computed according following expression:</p>
+<pre><code>	def InstantaneousWheelAcceleration(k):
+	    return ((abs(TeethCounter(k) - TeethCounter(k-2))
+	             - abs(TeethCounter(k-2) - TeethCounter(k-4)))
+	            * MaxCogCalibration(k-1) / pow(2*ATP_CYCLE_TIME))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0147], [iTC_CC_ATP_SwHA-0219]
+[End]
+[iTC_CC_ATP-SwRS-0202]
+FilteredWheelAcceleration，在进行最大位移过估算法之前，ATP需计算FILTERED_ACCELERATION_NB个周期的滤波平均加速度
+FilteredWheelAcceleration measurement is the average of InstantaneousWheelAcceleration over FILTERED_ACCELERATION_NB cycles for filtering the fluctuation causing by the sampling period.</p>
+<pre><code>	FilteredWheelAcceleration(k)
+	 = (InstantaneousWheelAcceleration(k)
+	     + InstantaneousWheelAcceleration(k-1)
+	     + ...
+	     + InstantaneousWheelAcceleration(k-FILTERED_ACCELERATION_NB+1))
+	    / FILTERED_ACCELERATION_NB
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0147], [iTC_CC_ATP_SwHA-0219]
+[End]
+[iTC_CC_ATP-SwRS-0203]
+AverageWheelAcceleration，在进行最大位移过估算法之前，ATP需计算AVERAGE_ACCELERATION_NB个周期的平均车轮加速度
+When wheel motion and acceleration are measurable, sliding average acceleration at cycle k defined by following expression:</p>
+<pre><code>	AverageWheelAcceleration(k)
+	 = (InstantaneousWheelAcceleration(k)
+	     + InstantaneousWheelAcceleration(k-1)
+	     + ...
+	     + InstantaneousWheelAcceleration(k-AVERAGE_ACCELERATION_NB+1))
+	    / AVERAGE_ACCELERATION_NB
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0147], [iTC_CC_ATP_SwHA-0219]
+[End]</p>

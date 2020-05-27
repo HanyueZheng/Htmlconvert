@@ -1,0 +1,10 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|MaximumSScompensatedMotion|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|MinimumSScompensatedMotion|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|MotionOverEstimationState|√|√| REF ENUM_SLIDING_STATE \h ENUM_SLIDING_STATE|
+|SlipSlideDetected|√|√| REF BOOLEAN BOOLEAN|
+|ValidSlipSlideModelling|√|√| REF BOOLEAN BOOLEAN|
+

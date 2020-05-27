@@ -1,0 +1,6 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|CalibrationState|√|√| REF ENUM_CALIBRATION_STATE \h ENUM_CALIBRATION_STATE|
+

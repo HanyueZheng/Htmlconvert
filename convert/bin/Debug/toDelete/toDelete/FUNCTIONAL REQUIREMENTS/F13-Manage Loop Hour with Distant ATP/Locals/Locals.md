@@ -1,0 +1,8 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|LastOtherATPmessageAge|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|OtherATPmessageAvailable|√|√| REF BOOLEAN BOOLEAN|
+|OtherATPmessageReceived|√|√| REF BOOLEAN BOOLEAN|
+

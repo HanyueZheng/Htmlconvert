@@ -1,0 +1,360 @@
+<p>[iTC_CC_ATP-SwRS-0205]
+StartBrakingMovementMax，记录由COASTING→BRAKING，COASTING→SLIDING，或BRAKING→SLIDING状态时的最大位移。
+ATP records the maximum movement when the state transferring from COASTING to BRAKING or SLIDING, or from BRAKING to SLIDING.</p>
+<pre><code>	def StartBrakingMovementMax(k):
+	    if (Initialization
+	        or (MotionOverEstimationState(k) is COASTING)):
+	        return 0
+	    elif ((MotionOverEstimationState(k-1) is COASTING
+	             and MotionOverEstimationState(k) is BRAKING)
+	            or (MotionOverEstimationState(k-1) is COASTING
+	                 and MotionOverEstimationState(k) is SLIDING)
+	            or (MotionOverEstimationState(k-1) is BRAKING
+	                 and MotionOverEstimationState(k) is SLIDING))):
+	        return MaximumTrainMotion(k-1)
+	    else:
+	        return StartBrakingMovementMax(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148]
+[End]
+[iTC_CC_ATP-SwRS-0226]
+MaxMotionDuringBrakingOrSliding，在制动或者打滑状态下反向运行的最大位移.
+ATP shall record the reversed motions during the braking or sliding state.</p>
+<pre><code>	if (StartBrakingMovementMax(k-1) &gt; 0)
+	    MaxMotionDuringBrakingOrSliding(k)
+	     = min((MaxMotionDuringBrakingOrSliding(k-1) + WheelMaximumMovement(k)), 0)
+	elif (StartBrakingMovementMax(k-1) &lt; 0)
+	    MaxMotionDuringBrakingOrSliding(k)
+	     = max((MaxMotionDuringBrakingOrSliding(k-1) + WheelMaximumMovement(k)), 0)
+	else:
+	    MaxMotionDuringBrakingOrSliding = 0
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1159]
+[End]
+[iTC_CC_ATP-SwRS-0227]
+MaxMotionOdometerSignChanged，用于监控是否发生了测得车轮位移反向.
+If the reversed motion during braking or sliding state is greater than a project defined distance, ATP shall consider the motion sign changed.</p>
+<pre><code>	def MaxMotionOdometerSignChanged(k):
+	    return (sign(StartBrakingMovementMax(k-1)) != sign(WheelMaximumMovement(k))
+	            and (abs(MaxMotionDuringBrakingOrSliding(k))
+	                  &gt; ATPsetting.OdoMinDistAfterSenseChange)) 
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-1159]
+[End]
+[iTC_CC_ATP-SwRS-0206]
+StartSlidingSpeed，记录由COASTING或BRAKING进入SLIDING状态时的速度。
+ATP shall record the speed when the train begins to slide.</p>
+<pre><code>	if (Initialization
+	     or (MotionOverEstimationState(k) == COASTING)
+	     or (MotionOverEstimationState(k) == BRAKING))
+	    StartSlidingSpeed = 0
+	elif (((MotionOverEstimationState(k-1) == COASTING)
+	          or (MotionOverEstimationState(k-1) == BRAKING))
+	       and (MotionOverEstimationState(k) == SLIDING))
+	    StartSlidingSpeed = WheelMaxSpeed(k-1)
+	else:
+	    StartSlidingSpeed = StartSlidingSpeed(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148]
+[End]
+[iTC_CC_ATP-SwRS-0207]
+TimeInSliding，记录在SLINDING状态下持续了多少个周期.
+ATP shall record how many cycles staying in SLIDING state.</p>
+<pre><code>	if (Initialization
+	     or ((MotionOverEstimationState(k-1) == SLIDING)
+	          and (MotionOverEstimationState(k) != SLIDING)))
+	    TimeInSliding = 0
+	elif (MotionOverEstimationState(k) == SLIDING)
+	    TimeInSliding = TimeInSliding(k-1) + 1
+	else:
+	    TimeInSliding = TimeInSliding(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148]
+[End]
+[iTC_CC_ATP-SwRS-0200]
+对于车辆位移的打滑空转补偿状态MotionOverEstimationState如下：
+COASTING, 无打滑发生；
+BRAKING, 一般刹车，进行打滑补偿Kslide；
+SLIDING, 可补偿的打滑状态；
+SKIDDING, 无法靠里程计补偿的打滑或空转状态。
+各个状态的转换关系如Figure 58所示。
+ATP software shall use the over-estimation model for train movement provided by Figure 58 state-diagram. The maximum and minimum train motion shall overestimate based on different state as follows:
+COASTING. There is not sliding effect during on train coasting or motoring, so ATP need not to overestimate train motion.
+BRAKING. When train brakes, which means the measured acceleration is less than the ATPsetting.BrakingStartAcc (normally -0.3m/s^2), ATP shall overestimated the maximum train motion 15% at most.
+SLIDING, When the measured acceleration is less than the ATPsetting.SlidingStartAcc (-2.5m/s^2 normally) or the average acceleration is less than ATPsetting.BrakingStartAcc, ATP shall use the train motion before SLIDING as the current train motion.
+SKIDDING, If train slides or slips excessively, ATP shall consider odometer motion untrustworthy.
+Figure 58 Processing of over estimation state
+#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0131], [iTC_CC_ATP_SwHA-0071]
+[End]
+[iTC_CC_ATP-SwRS-0209]
+当满足以下条件时，MotionOverEstimationState由COASTING转入BRAKING，并执行：
+The state transfers from “COASTING” to “BRAKING” when:</p>
+<pre><code>	if ((MotionOverEstimationState(k-1) == COASTING)
+	    and (WheelFilteredStopped(k) != True)
+	    and (FilteredWheelAcceleration(k)&lt; ATPsetting.BrakingStartAcc)
+	    and (FilteredWheelAcceleration(k)&gt;= ATPsetting.SlidingStartAcc)
+	    and OdometerState(k) is INITIALIZED)
+	    MotionOverEstimationState = BRAKING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0072],
+[iTC_CC-SyAD-0133][End]
+[iTC_CC_ATP-SwRS-0210]
+The MotionOverEstimationState transfers from “COASTING” to “SLIDING” when:</p>
+<pre><code>	if ((MotionOverEstimationState(k-1) == COASTING)
+	    and (WheelFilteredStopped(k) != True)
+	    and (FilteredWheelAcceleration(k) &lt; ATPsetting.SlidingStartAcc)
+	    and OdometerState(k) is INITIALIZED)
+	    MotionOverEstimationState = SLIDING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0073]
+[End]
+[iTC_CC_ATP-SwRS-0213]
+The MotionOverEstimationState transfers from “BRAKING” to “SLIDING” when:</p>
+<pre><code>	if (MotionOverEstimationState(k-1) == BRAKING
+	    and (FilteredWheelAcceleration(k) &lt; ATPsetting.SlidingStartAcc)
+	    and (AverageWheelAcceleration(k) &lt; ATPsetting.BrakingStartAcc)
+	    and (OdometerState(k) is INITIALIZED)
+	    and (not MaxMotionOdometerSignChanged(k)))
+	    MotionOverEstimationState = SLIDING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0075]
+[End]
+[iTC_CC_ATP-SwRS-0214]
+The MotionOverEstimationState transfers from “BRAKING” to “COASTING” when:</p>
+<pre><code>	if (MotionOverEstimationState(k-1) == BRAKING
+	    and ((AverageWheelAcceleration(k)&gt;= ATPsetting.BrakingStartAcc)
+	          or (OdometerState(k) is INVALID)
+	          or (MaxMotionOdometerSignChanged(k))))
+	    MotionOverEstimationState = COASTING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0076]
+[End]
+[iTC_CC_ATP-SwRS-0450]
+The MotionOverEstimationState transfers from “SLIDING” to “COASTING” when:</p>
+<pre><code>	if ((MotionOverEstimationState(k-1) == SLIDING)
+	     and ((OdometerState(k) is INVALID)
+	           or (MaxMotionOdometerSignChanged(k) == True))
+	    MotionOverEstimationState = COASTING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0078]
+[End]
+NOTES：
+打滑状态下列车位移的补偿方法基于以下假定：
+由于判断进入SLIDING状态的阈值ATPsetting.SlidingStartAcc为一个较大的减速度（典型值为-2.3m/s^2），在正常制动过程中不可能达到（列车的全常用制动一般略小于-1m/s^2），所以只可能是在紧急制动时，才进入打滑状态。由于紧急制动施加状态下列车牵引被切除，而车辆的紧急制动最小保障率绝对值要大于坡度导致的加速度（由项目保证）。所以，在SLIDING过程中，列车的真实速度是逐渐减小的，不可能出现打滑后车速比打滑前还大的情形。然而，如果测得车轮减速度的绝对值过大，或者在打滑状态下过长时间，则认为打滑补偿算法失效。
+The principle of overestimation in SLIDING state based on the following assumptions:
+Because the threshold deceleration (the typical value is -2.3m/s^2) used to detect sliding is far less than the full service braking deceleration (normally -1m/s^2), it is not possible to reach the SLIDING state unless the emergency brake applied. The project guaranteed that the absolute value of the minimum emergency brake deceleration is greater than the acceleration due to track gradient, and the rolling stock must cut off the traction during EB applied. Therefore, during SLIDING state, the real speed of the train must gradually reduce. However, if the measured absolute value of the wheel deceleration is too large or too long in the sliding conditions, ATP shall consider the overestimation algorithm as failure.
+[iTC_CC_ATP-SwRS-0451]
+SlidingEnded，判断是否结束打滑状态的条件之一。
+At cycle k, if motion overestimation status is SLIDING, ATP shall consider that sliding effect is ended (SlidingEnded) if FilteredWheelAcceleration is strictly less than ATPsetting.SlippingStopAcc and strictly greater than ATPsetting.SlidingStopAcc for more than ATPsetting.SlidingGripRecoveryTime.</p>
+<pre><code>	if (MotionOverEstimationState(k-1) == SLIDING
+	    and (FilteredWheelAcceleration(k) &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k) &gt; ATPsetting.SlidingStopAcc)
+	    and (MotionOverEstimationState(k-2) == SLIDING)
+	    and (FilteredWheelAcceleration(k-1) &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k-1) &gt; ATPsetting.SlidingStopAcc)
+	    ...
+	    and (MotionOverEstimationState(k-ATPsetting.SlidingGripRecoveryTime) == SLIDING)
+	    and (FilteredWheelAcceleration(k-ATPsetting.SlidingGripRecoveryTime+1)
+	           &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k-ATPsetting.SlidingGripRecoveryTime+1)
+	           &gt; ATPsetting.SlidingStopAcc))
+	    SlidingEnded = True
+	else:
+	    SlidingEnded = False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0079]
+[End]
+[iTC_CC_ATP-SwRS-0218]
+The MotionOverEstimationState transfers from “SLIDING” to “BRAKING” when:</p>
+<pre><code>	if ((MotionOverEstimationState(k-1) == SLIDING)
+	     and (OdometerState(k) is INITIALIZED)
+	     and (not MaxMotionOdometerSignChanged(k))
+	     and (TimeInSliding(k-1) &lt;= ATPsetting.SlidingTimeout)
+	     and (0 &lt; (|StartSlidingSpeed(k-1)| + TimeInSliding(k-1)* ATPsetting.SlidingStopAcc))
+	     and ((|StartSlidingSpeed(k-1)| + TimeInSliding(k-1)* ATPsetting.SlidingStopAcc)
+	           &lt; |WheelMaxSpeed(k)|)
+	     and (SlidingEnded(k) == True))
+	    MotionOverEstimationState = BRAKING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0079]
+[End]
+[iTC_CC_ATP-SwRS-0452]
+SlidingExcess，测得的加速度在项目配置范围内满足一定时间，是ATP判断过度打滑的必要条件之一。
+At cycle k, if motion overestimation status is SLIDING, ATP shall consider that sliding is excess (SlidingExcess) if FilteredWheelAcceleration is strictly less than ATPsetting.SlippingStopAcc and strictly greater than ATPsetting.SlidingStopAcc for more than ATPsetting.SlidingExcessTime.</p>
+<pre><code>	if (MotionOverEstimationState(k-1) == SLIDING
+	    and (FilteredWheelAcceleration(k) &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k) &gt; ATPsetting.SlidingStopAcc)
+	    and (MotionOverEstimationState(k-2) == SLIDING)
+	    and (FilteredWheelAcceleration(k-1) &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k-1) &gt; ATPsetting.SlidingStopAcc)
+	    ...
+	    and (MotionOverEstimationState(k-ATPsetting.SlidingExcessTime) == SLIDING)
+	    and (FilteredWheelAcceleration(k-ATPsetting.SlidingExcessTime+1)
+	           &lt; ATPsetting.SlippingStopAcc)
+	    and (FilteredWheelAcceleration(k-ATPsetting.SlidingExcessTime+1)
+	           &gt; ATPsetting.SlidingStopAcc))
+	    SlidingExcess = True
+	else:
+	    SlidingExcess = False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0080]
+[End]
+[iTC_CC_ATP-SwRS-0217]
+The MotionOverEstimationState transfers from SLIDING to SKIDDING when:</p>
+<pre><code>	if (MotionOverEstimationState(k-1) is SLIDING
+	     and OdometerState(k) is INITIALIZED
+	     and not MaxMotionOdometerSignChanged(k)
+	     and (TimeInSliding(k-1) &gt; ATPsetting.SlidingTimeout
+	          or (StartSlidingSpeed(k-1)+ TimeInSliding(k-1) * ATPsetting.SlidingStopAcc) &lt;= 0 
+	          or (((StartSlidingSpeed(k-1) + TimeInSliding(k-1)* ATPsetting.SlidingStopAcc)
+	                &gt;= WheelMaxSpeed(k))
+	               and SlidingExcess(k))))
+	    MotionOverEstimationState = SKIDDING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0081], [iTC_CC_ATP_SwHA-0082]
+[End]
+NOTES：
+由于当前项目应用的车辆都装有ABS防抱死系统，使得在制动时列车的加速度不会连续若干周期小于ATPsetting.SlidingStopAcc。因此，如果某周期瞬间加速度小于ATPsetting.SlidingStopAcc；并且在之后的测得加速度满足SlidingExcess条件，那么，下列两个条件可以同时成立：
+Because the application of anti-lock braking system for the train of current project, makes the brake acceleration cannot continuous less than ATPsetting.SlidingStopAcc for serious cycles. Therefore, if there was an unexpected instantaneous acceleration less than ATPsetting.SlidingStopAcc, and the after cycles' acceleration met the criteria of SlidingExcess, then the following two conditions can hold simultaneously.</p>
+<pre><code>	|StartSlidingSpeed(k-1)| + TimeInSliding(k) * ATPsetting.SlidingStopAcc &gt;= |WheelMaxSpeed(k)|)
+	AND (SlidingExcess(k) == True)
+</code></pre>
+<p>[iTC_CC_ATP-SwRS-0220]
+The MotionOverEstimationState transfers from SKIDDING to COASTING when:</p>
+<pre><code>	if (MotionOverEstimationState(k-1) is SKIDDING
+	     and (WheelFilteredStopped(k)
+	           or OdometerState(k) is INVALID))
+	    MotionOverEstimationState = COASTING
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0084]
+[End]
+[iTC_CC_ATP-SwRS-0735]
+StartBrakingMovementMin，记录由COASTING进入BRAKING，COASTING进入SLIDING，或者BRAKING进入SLIDING状态时的最小位移。
+ATP records the minimum movement when the state transferring from COASTING to BRAKING or SLIDING, or from BRAKING to SLIDING.</p>
+<pre><code>	def StartBrakingMovementMin(k):
+	    if (Initialization
+	        or OdometerState(k-1) is not INITIALIZED
+	        or (MotionOverEstimationState(k) is COASTING)):
+	        return 0
+	    elif ((MotionOverEstimationState(k-1) is COASTING
+	             and MotionOverEstimationState(k) is BRAKING)
+	           or (MotionOverEstimationState(k-1) is COASTING
+	               and MotionOverEstimationState(k) is SLIDING)
+	           or (MotionOverEstimationState(k-1) is BRAKING
+	                and MotionOverEstimationState(k) is SLIDING)):
+	        return MinimumTrainMotion(k-1)
+	    else:
+	        return StartBrakingMovementMin(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0148]
+[End]
+[iTC_CC_ATP-SwRS-0787]
+OverestimatedMotionMin，根据打滑状态机，对里程计测得的最小位移进行补偿。
+在BRAKING或SLIDING状态时，由于车辆ABS的作用，会在瞬间释放制动而使得转速突然增大，可能接近但不会大于进入制动状态时刻的速度。而由于获取里程计读值有1个齿的采样误差，在该误差的作用下，可能会使得测得位移大于进入制动状态时刻的位移，即出现测得车轮最小位移大于列车最大位移的情形。为防止这种情况，需要对列车最小位移进行调整，即始终使用进入制动状态时刻与测得车轮最小位移中绝对值较小的一个。
+其他情况，无需补偿，使用测得位移。</p>
+<pre><code>	def OverstimatedMotionMin(k):
+	    if (sign(StartBrakingMovementMin(k)) == sign(WheelMinimumMovement(k))
+	          and (MotionOverEstimationState (k) is BRAKING
+	               or MotionOverEstimationState (k) is SLIDING)):
+	        if (StartBrakingMovementMin(k) &gt;= 0):
+	            return min(StartBrakingMovementMin(k), WheelMinimumMovement(k))
+	        else:
+	            return (-1 * min(abs(StartBrakingMovementMin(k)), abs(WheelMinimumMovement(k))))
+	    else:
+	        return WheelMinimumMovement(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0131], [iTC_CC_ATP_SwHA-0070]
+[End]
+[iTC_CC_ATP-SwRS-0788]
+OverestimatedMotionMax，根据打滑状态机，对里程计测得的最大位移进行补偿。
+如果本周期在BRAKING状态，按如下规则更新列车最大位移：
+如果本周期测得车轮位移与StartBrakingMovementMax方向相同，且前者的绝对值大于后者的绝对值，表明由于采样齿数波动，测得位移大于StartBrakingMovementMax，此时使用测得位移作为最大列车位移；
+否则，根据配置对测得位移进行补偿，取StartBrakingMovementMax与补偿后的测得位移中绝对值较小的一个，位移方向与StartBrakingMovementMax相同。
+In BRAKING state, the maximum train motion overestimated as ATPsetting.SlidingCoefficient (15% normally) at most. If the overestimated motion has greater than the start braking movement, ATP shall use the start breaking movement as the current train motion. That said the train speed during braking could not faster than before.
+如果本周期在SLIDING状态时，按如下规则更新列车最大位移：
+如果本周期测得车轮位移与StartBrakingMovementMax方向相同，且前者的绝对值大于后者的绝对值，表明由于采样齿数波动，使得测得位移大于StartBrakingMovementMax。此时使用测得位移作为最大列车位移；
+否则，使用StartBrakingMovementMax
+In state SLIDING:
+If both WheelMaximumMovement and StartBrakingMovementMax are same direction, and the absolute value of the former is greater than the absolute value of the latter, indicating that due to the sampling error makes the measured movement greater than StartBrakingMovementMax. In this case, ATP shall uses WheelMaximumMovement as current train maximum motion.
+Otherwise, uses StartBrakingMovementMax as train maximum motion.
+其他状态下，无需对测得最大位移进行补偿。
+In other state (COASTING, SKIDDING), uses measured wheel maximum movement as current overestimated maximum train motion.</p>
+<pre><code>	def OverestimatedMotionMax(k):
+	    if MotionOverEstimationState(k) is BRAKING:
+	        if (sign(StartBrakingMovementMax(k)) == sign(WheelMaximumMovement(k))
+	                and abs(WheelMaximumMovement(k)) &gt; abs(StartBrakingMovementMax(k))):
+	            return WheelMaximumMovement(k) 
+	        elif (StartBrakingMovementMax(k) &gt;= 0):
+	            return min(abs(StartBrakingMovementMax(k)),
+	                       abs(WheelMaximumMovement(k) * ATPsetting.SlidingCoefficient))
+	        else:
+	            return -1 * min(abs(StartBrakingMovementMax(k)),
+	                            abs(WheelMaximumMovement(k) * ATPsetting.SlidingCoefficient))
+	    elif MotionOverEstimationState(k) is SLIDING:
+	        if (sign(StartBrakingMovementMax(k)) == sign(WheelMaximumMovement(k))
+	                and abs(WheelMaximumMovement(k)) &gt; abs(StartBrakingMovementMax(k))):
+	            return WheelMaximumMovement(k)
+	        else:
+	            return StartBrakingMovementMax(k)
+	    else:  \# Coasting and Skidding
+	        return WheelMaximumMovement(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0148], [iTC_CC_ATP_SwHA-0074]
+[End]</p>

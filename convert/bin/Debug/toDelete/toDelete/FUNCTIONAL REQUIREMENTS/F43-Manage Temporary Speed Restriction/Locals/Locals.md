@@ -1,0 +1,8 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|LastTSRreportAge|√|√| REF NUMERIC_32 \h NUMERIC_32|
+|TSRreportAvailable|√|√| REF BOOLEAN BOOLEAN|
+|TSRreportReceived|√|√| REF BOOLEAN BOOLEAN|
+

@@ -1,0 +1,103 @@
+<p>[iTC_CC_ATP-SwRS-0437]
+EnableSendLocReport，当所对应的LC消息在有效期内时，才允许给ZC发送位置报告。
+Before received the first valid synchronization from a LC, the corresponding LC vital time shall consider not significant, and the ATP shall prevent to send Location Report message to the ZC(s) associated to the corresponding LC.</p>
+<pre><code>	def EnableSendLocReport(LcId, k):
+	    return LCsynchronisationLoopHourValid(LcId, k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0206], [iTC_CC-SyAD-0382], [iTC_CC-SyAD-0384], [iTC_CC-SyAD-0389], [iTC_CC-SyAD-0913], [iTC_CC_ATP_SwHA-0214]
+[End]
+[iTC_CC_ATP-SwRS-0438]
+TimeElapseBetweenTwoLocReport，计算发送LocReport的时间控制：
+ATP shall calculate when to send the Location Report as the following ARDL:</p>
+<pre><code>	def TimeElapseBetweenTwoLocReport(k):
+	    if (Initialization
+	         or (TimeElapseBetweenTwoLocReport(k-1) == 1)):
+	        return round.floor(ATPsetting.LocReportEmissionPeriod)
+	    else:
+	        return TimeElapseBetweenTwoLocReport(k-1) - 1 
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0207], [iTC_CC-SyAD-1004]
+[End]
+[iTC_CC_ATP-SwRS-0439]
+ZCidUnderTrainTail，车尾定位所在的ZC标识.
+ATP shall record the ZC area id where the train tail located. If the train is not localized, ATP shall use the current receiving beacon where located, or the last known ZC area id.</p>
+<pre><code>	def ZCidUnderTrainTail(k):
+	    if (Initialization):
+	        return 0
+	    elif (TrainLocalized(k)):
+	        return TrackMap.ZCId(TrainTailMinLocation(k).Block)
+	    elif (MemorizedLocationAvailable(k)):
+	        if (TrainFrontEnd(k) is END_1):
+	            return TrackMap.ZCId(MemLocation.Ext2.Block)
+	        else:
+	            return TrackMap.ZCId(MemLocation.Ext1.Block)
+	    elif (NewBeaconObtained(k)):
+	        return TrackMap.ZCId(BeaconLastObtained.Block)
+	    else:
+	        return ZCidUnderTrainTail(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0181], [iTC_CC-SyAD-0205], [iTC_CC-SyAD-0836], [iTC_CC_ATP_SwHA-0197]
+[End]
+[iTC_CC_ATP-SwRS-0440]
+ZCidUnderTrainHead，车头定位的ZC标识
+ATP shall record the ZC area id where the train head located. If the train is not localized, ATP shall use the current receiving beacon where located, or the last known ZC area id.</p>
+<pre><code>	def ZCidUnderTrainHead(k):
+	    if (Initialization)
+	        return 0
+	    elif (TrainLocalized(k)):
+	        return TrackMap.ZCId(TrainHeadMinLocation(k).Block)
+	    elif (MemorizedLocationAvailable(k)):
+	        if (TrainFrontEnd(k) is END_1):
+	            return TrackMap.ZCId(MemLocation.Ext1.Block)
+	        else:
+	            return TrackMap.ZCId(MemLocation.Ext2.Block)
+	    elif (NewBeaconObtained(k)):
+	        return TrackMap.ZCId(BeaconLastObtained.Block)
+	    else:
+	        return ZCidUnderTrainHead(k-1)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0181], [iTC_CC-SyAD-0205], [iTC_CC-SyAD-0836], [iTC_CC_ATP_SwHA-0197]
+[End]
+[iTC_CC_ATP-SwRS-0441]
+SendLocReportOnZCunderTrainTail，当距离上次发送LocReport到达既定时间，且车头和车尾不是同一个ZC时，要给车尾所在的ZC发送消息
+When the time elapsed from last report is equal to the Location Report sending cycle, and the train tail located ZC is valid and not as same as the train head ZC, and the ZC train tail located authorized by the LC, ATP shall send the Location Report to this ZC where train tail located.</p>
+<pre><code>	def SendLocReportOnZCunderTrainTail(k):
+	    return (((TimeElapseBetweenTwoLocReport(k) == 1)
+	             or (not MasterCCcore(k-1) and MasterCCcore(k)))
+	            and (ZCidUnderTrainTail(k) is not None)
+	            and (ZCidUnderTrainTail(k) != ZCidUnderTrainHead(k))
+	            and EnableSendLocReport(TrackMap.ZC[ZCidUnderTrainTail(k)].LcId, k)
+	            and (VersionAuthorizedByLC(ZCidUnderTrainTail(k), k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0206], [iTC_CC-SyAD-0389], [iTC_CC_ATP_SwHA-0198]
+[End]
+[iTC_CC_ATP-SwRS-0442]
+SendLocReportOnZCunderTrainHead，是否给车头的ZC区发LocReport。
+When the time elapsed from last report is equal to the Location Report sending cycle, and the train head located ZC is valid, and the ZC train head located authorized by the LC, ATP shall send the Location Report to this ZC where train head located.</p>
+<pre><code>	def SendLocReportOnZCunderTrainHead(k):
+	    return (((TimeElapseBetweenTwoLocReport(k) == 1)
+	             or (not MasterCCcore(k-1) and MasterCCcore(k)))
+	            and (ZCidUnderTrainHead(k) is not None)
+	            and EnableSendLocReport(TrackMap.ZC[ZCidUnderTrainHead(k)].LcId, k)
+	            and (VersionAuthorizedByLC(ZCidUnderTrainHead(k), k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0206], [iTC_CC-SyAD-0389], [iTC_CC_ATP_SwHA-0198]
+[End]</p>

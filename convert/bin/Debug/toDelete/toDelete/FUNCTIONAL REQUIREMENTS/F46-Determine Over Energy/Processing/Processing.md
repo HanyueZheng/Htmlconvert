@@ -1,0 +1,3 @@
+﻿
+无论本周期的列车能量超过了车身范围内限制区域的能量限制，或是下游限制点的能量限制，ATP均应当触发EB，确保列车能满足线路上的速度或位置限制要求。
+ATP shall trigger EB to make sure that the train can fulfill the limitation requirements of speed or location, no matter the train energy exceeded the energy of train intersected zone or constraint point of the downstream.

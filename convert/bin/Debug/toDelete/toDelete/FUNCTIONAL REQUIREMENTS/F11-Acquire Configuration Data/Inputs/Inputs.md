@@ -1,0 +1,7 @@
+﻿
+
+|Name|Nature|Provided by|
+|-----|
+|DataPlugContent|Internal| REF _Ref345055964 \h F81-Initialize ATP software|
+|NonVitalRequest|External| REF _Ref348357813 \h Interface with CC Non Vital|
+

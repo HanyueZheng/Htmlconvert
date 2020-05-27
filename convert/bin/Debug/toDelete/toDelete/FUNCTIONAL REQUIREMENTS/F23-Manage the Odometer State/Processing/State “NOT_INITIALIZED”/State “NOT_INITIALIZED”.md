@@ -1,0 +1,58 @@
+﻿
+[iTC_CC_ATP-SwRS-0175]
+上电后里程计状态为NOT_INITIALIZED。
+From power-up, ATP shall consider that OdometerState is "NOT_INITIALIZED ".
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149]
+[End]
+[iTC_CC_ATP-SwRS-0176]
+If OdometerState is NOT_INITIALIZED at cycle k, and if wheel detected stopped at cycle k, then WheelMinimumMovement and WheelMaximumMovement shall be set to zero.
+```
+	if (OdometerState(k) == NOT_INITIALIZED)
+	    if (WheelFilteredStopped(k) == True))
+	         WheelMinimumMovement = 0
+	         WheelMaximumMovement = 0
+	    else:
+	         WheelMinimumMovement = —ATPsetting.MaxMotionPerCycle
+	         WheelMaximumMovement = ATPsetting.MaxMotionPerCycle
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0132], [iTC_CC_ATP_SwHA-0060]
+[End]
+[iTC_CC_ATP-SwRS-0177]
+里程计状态由NOT_INITIALIZED变为WAITING_COG_POSITION_CODE_READY的条件是:
+上周期在NOT_INITIALIZED；
+上周期在WheelFilteredStopped；
+本周期未WheelFilteredStopped而且未检测到传感器测试失败
+At cycle k, ATP shall consider that OdometerState changes from NOT_INITIALIZED to WAITING_COG_POSITION_CODE_READY if:
+a falling edge is detected on WheelFilteredStopped information,
+and sensors test is consistent at cycle k and was consistent at cycle k-1,
+```
+	if ((OdometerState(k-1) =  NOT_INITIALIZED)
+	    and (not WheelFilteredStopped(k) and not UnconsistentSensorTest(k))
+	    and (WheelFilteredStopped(k-1))
+	    OdometerState =  WAITING_COG_POSITION_CODE_READY
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149]
+[End]
+[iTC_CC_ATP-SwRS-0178]
+若检测到传感器三路全通或全堵，则进入INVALID传感器无效
+At cycle k, ATP shall consider that OdometerState changes from NOT_INITIALIZED to INVALID
+if sensors test is not consistent at cycle k.
+```
+	if ((OdometerState(k-1) = NOT_INITIALIZED)
+	    and UnconsistentSensorTest(k))
+	    OdometerState = INVALID
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0149], [iTC_CC_ATP_SwHA-0057]
+[End]

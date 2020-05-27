@@ -1,0 +1,154 @@
+﻿
+[iTC_CC_ATP-SwRS-0093]
+SameVersionWithDistantCore，比较来自远端ATP的安全软件，项目配置数据，以及线路地图版本号与本端是否一致
+The local ATP shall compare the information from the redundant ATP to ensure the consistency, which includes versions of vital software, project configuration data and the track map. 
+```
+	def SameVersionWithDistantCore(k):
+	    if (OtherATPmessageValid(k)
+	        and (OtherATP.SafetyParameterVersion == ATPsetting.SafetyParameterVersion)
+	        and (OtherATP.SafetyApplicationVersion == SafeApplicationVersion)):
+	        for ZcId in range(0, MAX_ZC_NB):
+	            if (OtherATP.ZcVersion[ZcId] != TrackMap.ZC[ZcId].Version):
+	                return False
+	            else:
+	                continue
+	        else:
+	            return True
+	    else:
+	        return False
+```
+\#Category= Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source= [iTC_CC-SyAD-0965]
+[End]
+[iTC_CC_ATP-SwRS-0632]
+EOAReportReceived，收到EOA消息
+```
+	def EOAReportReceived(k):
+	    return Message.Received(EOAReport, k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0153]
+[End]
+[iTC_CC_ATP-SwRS-0105]
+ZCmessageReady，表示本周期收到了有效的来自ZC的EOA和变量消息。
+当前时间大于消息中的ccLoopHour
+消息中的ccLoopHour+EOA有效期，应大于当前时间
+ZCmessageReady represents that an available EOA and variants message from ZC received in this cycle.
+```
+	def ZCmessageReady(k):
+	    return (Message.Available(EOAReportReceived(k),
+	                                   EOA_Report.CcLoopHour,
+	                                   ATPsetting.EOAvalidityTime,
+	                                   LastEOAReportAge(k-1),
+	                                   k)
+	            and (VersionAuthorizedByLC(SSIDofZC, k))
+	            and (Message.ReplyLocalCC(EOA_Report.CcLoopHour)
+	                 or SameVersionWithDistantCore(k)))
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0153], [iTC_CC-SyAD-0155], [iTC_CC-SyAD-0156], [iTC_CC-SyAD-0158], [iTC_CC-SyAD-0962], [iTC_CC-SyAD-0965], [iTC_CC-SyAD-0966], [iTC_CC_ATP_SwHA-0026], [iTC_CC_ATP_SwHA-0251]
+[End]
+[iTC_CC_ATP-SwRS-0108]
+LastEOAReportAge，数值型，上次发出loc-report的周期数减去EOA在ZC端消耗的时间（CC周期数）。
+LastEOAReportAge represents the value calculated by current ATP time minus the previous loc-report number and the EOA consuming time in ZC. 
+```
+	def LastEOAReportAge(k):
+	    return Message.LastAge(ZCmessageReady(k),
+	                            EOA_Report.CcLoopHour,
+	                            LastEOAReportAge(k-1),
+	                            k)
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0155], [iTC_CC-SyAD-0965]
+[End]
+[iTC_CC_ATP-SwRS-0106]
+EOAgroundAge，数值型，在收到EOA消息时，其时间已经消耗了几个CC的周期。需同时维护WithoutSpaceEoa和普通EOA。
+EOAgroundAge stands for the number of CC cycle when receiving the EOA information.
+```
+	def EOAgroundAge(k):
+	    if (Initialization):
+	        EOAgroundAge.WithoutSpacing = REPORT_AGE_MAX
+	        EOAgroundAge.Classic = REPORT_AGE_MAX
+	    elif (ZCmessageReady(k)):
+	        EOAgroundAge.WithoutSpacing = (round.ceil
+	                                       ((EOA_Report.MessageContainerCreationTime
+	                                         - EOA_Report.WithoutSpacingEoaCreationTime)
+	                                        * SYNCHRODATE_TIME_UNIT_MS / ATP_CYCLE_TIME_MS))
+	        EOAgroundAge.Classic = round.ceil((EOA_Report.MessageContainerCreationTime
+	                                           - EOA_Report.EoaCreationTime)
+	                                          * SYNCHRODATE_TIME_UNIT_MS / ATP_CYCLE_TIME_MS)
+	    else:
+	        EOAgroundAge = EOAgroundAge(k-1)
+	    return EOAgroundAge
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software
+\#Source=[iTC_CC-SyAD-0156], [iTC_CC_ATP_SwHA-0179]
+[End]
+[iTC_CC_ATP-SwRS-0107]
+ReceivedEOAreport，判断当新收到EOA消息的有效期大于之前存储EOA消息有效期时，更新EOA。需同时维护WithoutSpaceEoa和普通EOA。当存储的EOA消息过期后，清除该消息。
+
+|Identification|Description|
+|-----|
+|ST_EOA_RCV||
+||.TrainFrontEnd|EOA对应的车头|
+||.Classic.ValidityTime|普通EOA的有效期截止时间 |
+||.Classic.Type|普通EOA的类型|
+||.Classic.Location|普通EOA的位置|
+||.WithoutSpacing.ValidityTime|在SMI区域使用的EOA的有效期截止时间 |
+||.WithoutSpacing.Type|SMI区使用的EOA的类型|
+||.WithoutSpacing.Location|SMI区使用的EOA的位置|
+||.CcLoopHour|EOA消息回复的CC时间|
+
+```
+	def ReceivedEOAreport(k):
+	    if (Initialization):
+	        ReceivedEOAreport = None
+	    elif (ZCmessageReady(k)):
+	        ReceivedEOAreport.TrainFrontEnd = EOA_Report.TrainFrontEnd
+	        ReceivedEOAreport.Classic = UpdateReceivedEoa(EOA_Report.CcLoopHour,
+	                                                               EOAgroundAge(k).Classic,
+	                                                               EOA_Report.Classic,
+	                                                               ReceivedEOAreport(k-1).Classic)
+	        ReceivedEOAreport.WithoutSpacing = (UpdateReceivedEoa
+	                                                   (EOA_Report.CcLoopHour,
+	                                                    EOAgroundAge(k).WithoutSpacing,
+	                                                    EOA_Report.WithoutSpacing,
+	                                                    ReceivedEOAreport(k-1).WithoutSpacing))
+	        ReceivedEOAreport.CcLoopHour = EOA_Report.CcLoopHour
+	    else:
+	        ReceivedEOAreport = ReceivedEOAreport(k-1)
+	        if (Message.IsMoreRecent(ATPtime(k), ReceivedEOAreport.Classic.ValidityTime)):
+	            clean_reseived_eoa_classic
+	        if (Message.IsMoreRecent(ATPtime(k), ReceivedEOAreport.WithoutSpacing.ValidityTime)):
+	            clean_reseived_eoa_without_space
+	    return ReceivedEOAreport
+```
+其中UpdateReceivedEoa定义如下:
+```
+	def UpdateReceivedEoa(NewEoaLoopHour, EoaGroundAge, NewReceivedEoa, PreviousReceivedEoa):
+	    if (Message.ReplyLocalCc(NewEoaLoopHour)):
+	        NewValidity = (NewEoaLoopHour - EoaGroundAge + ATPsetting.EOAvalidityTime)
+	    else:
+	        NewValidity = (ATPtime(k) - EoaGroundAge + ATPsetting.EOAvalidityTime
+	                          - (OtherATPmaxTime(k) - NewEoaLoopHour))
+	    if (Message.IsMoreRecent(NewValidity, ATPtime(k))
+	        and (Message.IsMoreRecent(NewValidity, PreviousReceivedEoa.ValidityTime))):
+	        return NewReceivedEoa
+	    else:
+	        return PreviousReceivedEoa
+```
+\#Category=Functional
+\#Contribution=SIL4
+\#Allocation=ATP Software, Vital Embedded Setting
+\#Source=[iTC_CC-SyAD-0153], [iTC_CC-SyAD-0156], [iTC_CC-SyAD-0158], [iTC_CC_ATP_SwHA-0025], [iTC_CC_ATP_SwHA-0028], [iTC_CC-SyAD-1005]
+[End]

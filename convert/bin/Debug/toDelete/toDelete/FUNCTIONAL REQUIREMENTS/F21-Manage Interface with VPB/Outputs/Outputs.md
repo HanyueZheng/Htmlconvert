@@ -1,0 +1,11 @@
+﻿
+
+|Name|Safety Critical|Observable|Logical Type|
+|-----|
+|ATCkey|√|√| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|
+|BeaconCount|×|√| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|
+|BeaconMessage|√|√| REF ST_BEACON_MSG \h ST_BEACON_MSG|
+|BeaconMessageReceive|√|√|BOOLEAN|
+|IdenticalLockedOdometer|√|√|BOOLEAN|
+|LockedBeaconMsgByte|√|√| REF NUMERIC_32 \h  \* MERGEFORMAT NUMERIC_32|
+

@@ -1,0 +1,61 @@
+<p>[iTC_CC_ATP-SwRS-0737]
+NoVitalCorrectlyDocked，CCNV判断列车是否停在开门授权区内</p>
+<pre><code>	def NoVitalCorrectlyDocked(k):
+	    return (ATOcontrolTimeValid(k)
+	            and NonVitalRequest(k).TrainInCorrectlyDockedZone)
+</code></pre>
+<p>#Category= Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0068], [iTC_CC-SyAD-0229]
+[End]
+[iTC_CC_ATP-SwRS-0330]
+LocalATPenableDoorOpening_A，本ATP是否在站内允许开A侧车门：
+ATP shall determine whether train doors on side A opening. The rules are following:</p>
+<pre><code>	def LocalATPenableDoorOpening_A(k):
+	    return (TrainLocatedOnKnownPath(k)
+	            and TrainIncludedInVPEZ_A(k)
+	            and NoVitalCorrectlyDocked(k)
+	            and TrainSafelyImmobilised(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0216], [iTC_CC-SyAD-0229], [iTC_CC-SyAD-0240], [iTC_CC-SyAD-0241], [iTC_CC-SyAD-0242], [iTC_CC-SyAD-1225], [iTC_CC_ATP_SwHA-0136]
+[End]
+[iTC_CC_ATP-SwRS-0331]
+LocalATPenableDoorOpening_B，本ATP是否授权开启B侧车门：
+ATP shall determine whether train doors on side B opening. The rules are following:</p>
+<pre><code>	def LocalATPenableDoorOpening_B(k):
+	    return (TrainLocatedOnKnownPath(k)
+	            and TrainIncludedInVPEZ_B(k)
+	            and NoVitalCorrectlyDocked(k)
+	            and TrainSafelyImmobilised(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0216], [iTC_CC-SyAD-0229], [iTC_CC-SyAD-0240], [iTC_CC-SyAD-0241], [iTC_CC-SyAD-0242], [iTC_CC-SyAD-1225], [iTC_CC_ATP_SwHA-0136]
+[End]
+[iTC_CC_ATP-SwRS-0720]
+EnableDoorOpening_A，结合远端ATP结果的开门授权信息。</p>
+<pre><code>	def EnableDoorOpening_A(k):
+	    return (LocalATPenableDoorOpening_A(k)
+	            or OtherATP.EnableDoorOpening_A)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0242]
+[End]
+[iTC_CC_ATP-SwRS-0721]
+EnableDoorOpening_B，结合远端ATP结果的开门授权信息。</p>
+<pre><code>	def EnableDoorOpening_B(k):
+	    return (LocalATPenableDoorOpening_B(k)
+	            or OtherATP(k).EnableDoorOpening_B)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0242]
+[End]</p>

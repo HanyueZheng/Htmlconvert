@@ -1,0 +1,6 @@
+<p>ATP软件每周期查询CCNV是否有转发来自VIOM的安全消息，包括来自END_1和END_2端车头的各2路VIOM。消息结构如Table 411，ATP软件将其解析生成VIOM1VitalInput，或VIOM2VitalInput，规则如下：
+如果没有收到某个VIOM的消息，或者CRC校验或SACEM校核字错误，则将丢弃该VIOM信息；
+否则，生成如ST_VIOM_INPUT结构的全局变量。
+Every cycle, ATP software queries whether there are vital rolling stock inputs messages transmitted from CCNV, which acquired by at most four VIOM from both END_1 and END_2. The structure of the inputs message are Table 411, and ATP shall receive and store them into VIOM1VitallInput.or VIOM2VitalInput. The receiving and storing rules are following:
+If there is no message from VIOM, or the CRC or vital checksum of the received message failed, ATP shall discard this message;
+Otherwise, generate the structure of global variable such as ST_VIOM_INPUT.</p>

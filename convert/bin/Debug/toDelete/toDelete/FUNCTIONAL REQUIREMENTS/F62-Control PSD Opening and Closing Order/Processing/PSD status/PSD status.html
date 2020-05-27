@@ -1,0 +1,182 @@
+<p>在CBTC模式下，当列车在运动过程中，ATP均相信并采用来自ZC的PSD变量状态作为该PSD的状态信息；而在列车静止或刚发车时，应采用与联锁通信得到的PSD结果。在BLOCK模式下，在列车运行时，ATP不考虑该PSD的状态（即认为该PSD是关闭并锁闭的）；在停稳或刚发车时，再使用来自联锁的PSD状态信息。因此，本功能更新的PSDzoneStatus_A和PSDzoneStatus_B信息，需根据本端ATP是否主机，以及来自联锁、ZC或是BM信标的信息判断PSD状态。PSD状态结构体为ST_PSD_STATUS：
+In CBTC mode, when train is moving, ATP shall monitor the PSD status by the variant from ZC; and on the other hand, when train is stopping or just beginning to start, ATP shall use the PSD status adopted from the communication with interlock device. In the block mode, ATP will not consider the PSD status when train is moving (i.e. Will consider the PSD is closed and locked); and when train is stopping or starting, ATP will use the PSD information from interlock devices. Therefore, ATP should consider the updating of PSDzoneStatus_A and PSDzoneStatus_B based on the whether ATP is master or not, the information from interlock device, ZC or BM.</p>
+<p>|Identification|Logical Type|Description|
+|-----|
+|ST_PSD_STATUS|||
+||Id| REF NUMERIC_32 \h  * MERGEFORMAT NUMERIC_32|PSD的标识|
+||Validity| REF NUMERIC_32 \h  * MERGEFORMAT NUMERIC_32|PSD剩余有效期|
+||AllPSDclosed| REF BOOLEAN \h  * MERGEFORMAT BOOLEAN|PSD状态|</p>
+<p>[iTC_CC_ATP-SwRS-0332]
+UsingPSDstatusFromCI，只有当列车定位与PSD区域有交集，且列车静止或刚发车时，ATP使用来自CI的PSD状态信息。
+Only when the train fulfilled the following conditions, ATP shall use the PSD status from the CI:
+The train location intersects with a PSD zone;
+And the train is filtered stopped or just started moving.</p>
+<pre><code>	UsingPSDstatusFromCI = ((AlignPSDzone_A(k) or AlignPSDzone_B(k))
+	                             and (TrainFilteredStopped(k)
+	                                   or (TrainFilteredStopped(k-1)
+	                                        and not TrainFilteredStopped(k))))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0266]
+[End]
+[iTC_CC_ATP-SwRS-0134]
+MasterCCcore，来自CCNV的当前是否为主控CC信息
+MasterCCcore shows whether the status from CCNV is the main controlled CC.</p>
+<pre><code>	if (ATOcontrolTimeValid(k) == True)
+	    MasterCCcore = NonVitalRequest.MasterCcCore(k)
+	else:
+	    MasterCCcore = False
+</code></pre>
+<p>#Category= Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0068], [iTC_CC-SyAD-1044]
+[End]
+[iTC_CC_ATP-SwRS-0155]
+PSDzoneStatus_A, 如果ATP所在为主控CC，则对A侧PSD状态的更新规则如下：
+If the ATP is the master CC, then the A-side PSD state updating rules are as follows:</p>
+<pre><code>	if (MasterCCcore(k) == True)
+	    if ((PSDoperation_A.Id == None) or (PSDoperation_A.Id != PSDid_A(k)))
+	        PSDzoneStatus_A.Id(k)= None
+	        PSDzoneStatus_A.Validity = 0
+	        PSDzoneStatus_A.AllPSDclosed = False
+	    else:
+	        PSDzoneStatus_A(k).Id = PSDoperation_A(k).Id
+	        if (UsingPSDstatusFromCI(k))
+	             PSDzoneStatus_A.Validity(k) = TableOfPSDPlatform[PSDid_A(k)].DoorStatusValidityTime
+	             PSDzoneStatus_A.AllPSDclosed(k) = TableOfPSDPlatform[PSDid_A(k)].DoorClosed
+	        elif (CoercedPermissive(TrackMap.PSDs[PSDid_A(k)].CoercedPermissive, k))
+	             PSDzoneStatus_A.Validity = REPORT_AGE_MAX
+	             PSDzoneStatus_A.AllPSDclosed = True
+	        elif (CoercedRestrictive(TrackMap.PSDs[PSDid_A(k)].NotCoercedRestrictive, k))
+	             PSDzoneStatus_A.Validity = REPORT_AGE_MAX
+	             PSDzoneStatus_A.AllPSDclosed = False
+	        else:
+	             PSDzoneStatus_A.Validity(k) = ReceivedVariantReport[LineSectionOfPSD].ValidityTime
+	             PSDzoneStatus_A.AllPSDclosed(k)= VariantValue(TrackMap.PSDs[PSDid_A(k)].Variant, k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC_ATP_SwHA-0137], [iTC_CC_ATP_SwHA-0138]
+[End]
+[iTC_CC_ATP-SwRS-0532]
+PSDzoneStatus_B, 如果ATP所在为主控CC，则对B侧PSD状态的更新规则如下：
+If the ATP is the master CC, then the B-side PSD state updating rules are as follows:</p>
+<pre><code>	if (MasterCCcore(k) == True)
+	    if ((PSDoperation_B.Id == None) or (PSDoperation_B.Id != PSDid_B(k)))
+	        PSDzoneStatus_B.Id(k)= None
+	        PSDzoneStatus_B.Validity = 0
+	        PSDzoneStatus_B.AllPSDclosed = False
+	    else:
+	        PSDzoneStatus_B.Id(k)= PSDoperation_B.Id
+	        if (UsingPSDstatusFromCI(k))
+	             PSDzoneStatus_B.Validity(k) = TableOfPSDPlatform[PSDid_B(k)].DoorStatusValidityTime
+	             PSDzoneStatus_B.AllPSDclosed(k) = TableOfPSDPlatform[PSDid_B(k)].DoorClosed
+	        elif (CoercedPermissive(TrackMap.PSDs[PSDid_B(k)].CoercedPermissive, k))
+	             PSDzoneStatus_B.Validity = REPORT_AGE_MAX
+	             PSDzoneStatus_B.AllPSDclosed = True
+	        elif (CoercedRestrictive(TrackMap.PSDs[PSDid_B(k)].NotCoercedRestrictive, k))
+	             PSDzoneStatus_B.Validity =  REPORT_AGE_MAX
+	             PSDzoneStatus_B.AllPSDclosed = False
+	        else:
+	             PSDzoneStatus_B.Validity(k) = ReceivedVariantReport[LineSectionOfPSD].ValidityTime
+	             PSDzoneStatus_B.AllPSDclosed(k)= VariantValue(TrackMap.PSDs[PSDid_B(k)].Variant, k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC_ATP_SwHA-0137], [iTC_CC_ATP_SwHA-0138]
+[End]
+[iTC_CC_ATP-SwRS-0533]
+如果ATP所在为备机CC，则对A侧PSD状态的更新规则如下：
+If the ATP is not the master CC, then the A-side PSD state updating rules are as follows:</p>
+<pre><code>	if (MasterCCcore != True)
+	    if (OtherATPmessageAvailable(k) == True)
+	        PSDzoneStatus_A.Id = OtherATP.PsdIdSide_A
+	        if (PSDzoneStatus_A.Id(k) != None)
+	             PSDzoneStatus_A.Validity(k) = (OtherATP.PsdValiditySide_A
+	                                     - Message.ModularSub(ATPtime(k), OtherATP.LatestTimeOtherCore))
+	             PSDzoneStatus_A.AllPSDclosed(k) = (OtherATP.PsdClosedSide_A
+	                                                       and (PSDzoneStatus_A.Validity(k) &gt; 0))
+	        else:
+	             PSDzoneStatus_A.Validity = 0
+	             PSDzoneStatus_A.AllPSDclosed = False
+	    elif (PSDzoneStatus_A.Id(k-1) != None)
+	             PSDzoneStatus_A.Id = PSDzoneStatus_A.Id(k-1)
+	             PSDzoneStatus_A.Validity = PSDzoneStatus_A.Validity(k-1)- 1
+	             PSDzoneStatus_A.AllPSDclosed(k) = (PSDzoneStatus_A.AllPSDclosed(k-1)
+	                                                       and (PSDzoneStatus_A.Validity(k) &gt; 0))
+	    else:
+	         PSDzoneStatus_A.Validity = 0
+	         PSDzoneStatus_A.AllPSDclosed = False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source= [iTC_CC_ATP_SwHA-0138]
+[End]
+[iTC_CC_ATP-SwRS-0534]
+如果ATP所在为备机CC，则对B侧PSD状态的更新规则如下：
+If the ATP is not the master CC, then the B-side PSD state updating rules are as follows:</p>
+<pre><code>	if (MasterCCcore != True)
+	    if (OtherATPmessageAvailable(k) == True)
+	        PSDzoneStatus_B.Id = OtherATP.PsdIdSide_B
+	        if (PSDzoneStatus_B.Id(k) != None)
+	             PSDzoneStatus_B.Validity(k) = (OtherATP.PsdValiditySide_B
+	                                     - Message.ModularSub(ATPtime(k), OtherATP.LatestTimeOtherCore))
+	             PSDzoneStatus_B.AllPSDclosed(k)
+	               = OtherATP.PsdClosedSide_B
+	                 and (PSDzoneStatus_B.Validity(k) &gt; 0)
+	        else:
+	             PSDzoneStatus_B.Validity = 0
+	             PSDzoneStatus_B.AllPSDclosed = False
+	    elif (PSDzoneStatus_B.Id(k-1) != None)
+	             PSDzoneStatus_B.Id = PSDzoneStatus_B.Id(k-1)
+	             PSDzoneStatus_B.Validity = PSDzoneStatus_B.Validity(k-1) - 1
+	             PSDzoneStatus_B.AllPSDclosed(k)
+	               = PSDzoneStatus_B.AllPSDclosed(k-1)
+	                 and (PSDzoneStatus_B.Validity(k) &gt; 0)
+	    else:
+	         PSDzoneStatus_B.Validity = 0
+	         PSDzoneStatus_B.AllPSDclosed = False
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC_ATP_SwHA-0138]
+[End]
+[iTC_CC_ATP-SwRS-0722]
+PSDstatusNonVital_A，用于CCNV发送给DMI显示的A侧PSD状态</p>
+<pre><code>	def PSDstatusNonVital_A(k):
+	    if (PSDzoneStatus_A(k).Id is None
+	         or PSDzoneStatus_A(k).Validity &lt;= 0):
+	        return PSD_STATE_UNKNOWN
+	    elif (PSDzoneStatus_A(k).AllPSDclosed):
+	        return PSD_STATE_CLOSED
+	    else:
+	        return PSD_STATE_OPENED
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0408], [iTC_CC-SyAD-0267]
+[End]
+[iTC_CC_ATP-SwRS-0723]
+PSDstatusNonVital_B，用于CCNV发送给DMI显示的B侧PSD状态</p>
+<pre><code>	def PSDstatusNonVital_B(k):
+	    if (PSDzoneStatus_B(k).Id is None
+	        or PSDzoneStatus_B(k).Validity &lt;= 0):
+	        return PSD_STATE_UNKNOWN
+	    elif (PSDzoneStatus_B(k).AllPSDclosed):
+	        return PSD_STATE_CLOSED
+	    else:
+	        return PSD_STATE_OPENED
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL0
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0408], [iTC_CC-SyAD-0267]
+[End]</p>

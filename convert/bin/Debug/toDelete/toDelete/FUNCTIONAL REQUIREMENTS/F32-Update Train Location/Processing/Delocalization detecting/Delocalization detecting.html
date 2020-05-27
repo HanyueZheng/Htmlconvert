@@ -1,0 +1,178 @@
+<p>[iTC_CC_ATP-SwRS-0254]
+LocationUntravelable，判断车身范围内是否有线路边界或者状态不符的道岔
+当上周期列车定位，并满足以下条件时，本周期设置为True。
+如果车尾最小定位到车头最大定位之间存在状态未知的道岔(包括发散或汇聚节点)；
+或者，如果车尾最小定位到车头最大定位之间存在变量状态与之前列车位置不符的发散汇聚节点；
+或者，轨道边界在列车定位范围内；
+否则，设置该值为False。
+ATP shall determine whether there is an unknown-status point intersecting with the train location.
+If the train has localized at the previous cycle, and fulfills one of the following conditions:
+There is an unknown-status divergence of convergence located in the range from train tail to train head, then ATP shall set as True;
+Or else:, if there is a convergence with reverse route located in the range from train tail to train head, the ATP shall set as True;
+Or else, train crossed the boundary of ATC area, shall set as True.
+Otherwise, set as False.</p>
+<pre><code>	def LocationUntravelable(k):
+	    return (TrainLocalized(k-1)
+	             and (not (TrackMap.ReachableBetweenTwoLocations
+	                         (LocationBeforeReloc(k).Ext2, LocationBeforeReloc(k).Ext1,
+	                          (abs(MaximumTrainMotion) + ATPsetting.LocationTrainLength
+	                                + LocationBeforeReloc(k).Uncertainty)))
+	                   or not (TrackMap.ReachableBetweenTwoLocations
+	                            (LocationBeforeReloc(k).Ext1, LocationBeforeReloc(k).Ext2,
+	                             (abs(MaximumTrainMotion) + ATPsetting.LocationTrainLength
+	                              + LocationBeforeReloc(k).Uncertainty)))))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0190], [iTC_CC-SyAD-0191], [iTC_CC-SyAD-1205], [iTC_CC_ATP_SwHA-0100]
+[End]
+[iTC_CC_ATP-SwRS-0460]
+InverseLocation，判断END_2车头的外侧和内侧定位顺序是否正确。
+ATP shall determine the correct order of the external and internal location of train END.</p>
+<pre><code>	def InverseLocation(k):
+	    return (LocationBeforeReloc(k).Uncertainty &lt; 0)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0188]
+[End]
+[iTC_CC_ATP-SwRS-0253]
+LocationUncertaintyExceed，列车定位状态下，每周期计算列车外侧定位和内侧之间的距离是否超过最大允许误差。
+ATP shall calculate the uncertain distance between the external and internal locations of train END_2.</p>
+<pre><code>	def LocationUncertaintyExceed(k):
+	    return (LocationBeforeReloc(k).Uncertainty &gt; ATPsetting.LocationMaxUncertaintyConfirmed)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0189]
+[End]
+[iTC_CC_ATP-SwRS-0650]
+TrainRealignmentOnBeacon，是否在信标上重定位成功</p>
+<pre><code>	def TrainRealignmentOnBeacon(k):
+	    return (TrainLocalized(k-1)
+	            and NewBeaconObtained(k)
+	            and (TrackMap.IntersectionOfTwoZones(BeaconLocation.Int2, BeaconLocation.Ext2,
+	                                                    LocationBeforeReloc.Int2, LocationBeforeReloc.Ext2)
+	                  is not None))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0202], [iTC_CC-SyAD-1208], [iTC_CC_ATP_SwHA-0099]
+[End]
+[iTC_CC_ATP-SwRS-0768]
+RealignmentFailed，上周期定位状态下，如果读到新的重定位信标，但ATP根据位移计算的最大最小定位，与通过读到信标位置计算的最大最小定位之间没有交集，则认为重定位失败。</p>
+<pre><code>	def RealignmentFailed(k):
+	    return (TrainLocalized(k-1)
+	             and NewBeaconObtained(k)
+	             and (TrackMap.IntersectionOfTwoZones(BeaconLocation.Int2, BeaconLocation.Ext2,
+	                                                    LocationBeforeReloc.Int2, LocationBeforeReloc.Ext2)
+	                  is None))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0196], [iTC_CC-SyAD-0197], [iTC_CC-SyAD-0198], [iTC_CC-SyAD-0199], [iTC_CC_ATP_SwHA-0099], [iTC_CC-SyAD-0183]
+[End]
+[iTC_CC_ATP-SwRS-0745]
+LocationAfterReloc，经过信标重定位后的列车定位</p>
+<pre><code>	def LocationAfterReloc(k):
+	    if (TrainRealignmentOnBeacon(k)):
+	        (LocationAfterReloc.Int2,
+	       LocationAfterReloc.Ext2) = (TrackMap.IntersectionOfTwoZones(LocationBeforeReloc(k).Int2,
+	                                                                               LocationBeforeReloc(k).Ext2,
+	                                                                               BeaconLocation(k).Int2,
+	                                                                               BeaconLocation(k).Ext2))
+	        LocationAfterReloc.Uncertainty = (TrackMap.DistanceBtwTwoLocs(LocationAfterReloc.Int2,
+	                                                                                  LocationAfterReloc.Ext2,
+	                                                           ATPsetting.LocationMaxUncertaintyConfirmed))
+	        LocationAfterReloc.Int1 = U
+	pdateInt1FromExt2        LocationAfterReloc.Ext1 = U
+	pdateExt1FromExt2    elif (not TrainLocalized(k-1)):
+	        LocationAfterReloc = None
+	    else:
+	        LocationAfterReloc = LocationAfterReloc(k-1)
+	    return LocationAfterReloc
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0196], [iTC_CC_ATP_SwHA-0099]
+[End]
+[iTC_CC_ATP-SwRS-0250]
+LocPermanentFailure，在列车已定位，且未使用非确认的BM变量情况下，若发生重定位失败，则永久失位。</p>
+<pre><code>	def LocPermanentFailure(k):
+	    return (LocPermanentFailure(k-1)
+	              or (TrainLocatedOnKnownPath(k-1)
+	                   and RealignmentFailed(k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0176], [iTC_CC-SyAD-0196], [iTC_CC-SyAD-0197], [iTC_CC-SyAD-0198], [iTC_CC-SyAD-0199], [iTC_CC_ATP_SwHA-0099], [iTC_CC-SyAD-0183]
+[End]
+[iTC_CC_ATP-SwRS-0651]
+MotionSinceLastReloc，记录自上次信标重定位后的运行距离绝对值</p>
+<pre><code>	def MotionSinceLastReloc(k):
+	    if (TrainLocatedOnOtherATP(k)):
+	        return OtherATP(k).MotionSinceLastReloc
+	    elif (TrainRealignmentOnBeacon(k)):
+	        return abs(DistLastBeaconMax(k))
+	    elif (not TrainLocalized(k-1)):
+	        return 0
+	    else:
+	        return (MotionSinceLastReloc(k-1) + abs(MaximumTrainMotion(k)))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-0187]
+[End]
+[iTC_CC_ATP-SwRS-0652]
+CBTCwithoutKnownPath，在CBTC下，若上周期定位path为假，则失位</p>
+<pre><code>	def CBTCwithoutKnownPath(k):
+	    return (TrainLocalized(k-1)
+	             and not LocationPathKnown(k-1)
+	             and not BlockModeUsed(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software
+#Source=[iTC_CC-SyAD-1213]
+[End]
+[iTC_CC_ATP-SwRS-0074]
+TrainUnitIntegrity，任一端车头能保证列车完整性，则认为车辆完整性能被保证。如果该项目未配置列车完整性采集，则认为列车完整性已由车辆保证。其状态来自于项目可配置的列车输入采集。
+If either of ends can ensure the train integrity, ATP shall set TrainUnitIntegrity as True. If the project is not configured with the capture of train integrity, it is sure that the train can guarantees the integrity.</p>
+<pre><code>	def TrainUnitIntegrity(k):
+	    return Offline.GetTrainUnitIntegrity(k)
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source=[iTC_CC-SyAD-0195], [iTC_CC-SyAD-0334], [iTC_CC-SyAD-0335], [iTC_CC-SyAD-0336], [iTC_CC-SyAD-1003], [iTC_CC_ATP_SwHA-0208]
+[End]
+[iTC_CC_ATP-SwRS-0278]
+LocalizationFault用于表明是否发生定位错误。判断条件如下:
+If the localization state is not NOT_LOCALIZED, ATP shall determine whether the localization fault happens or not, according to the following pseudo-codes:</p>
+<pre><code>	def LocalizationFault(k):
+	    return (not TrainUnitIntegrity(k)
+	             or not ValidTrainKinematic(k)
+	             or LocationUntravelable(k)
+	             or InverseLocation(k)
+	             or LocationUncertaintyExceed(k)
+	             or RealignmentFailed(k)
+	             or LocPermanentFailure(k)
+	             or (MotionSinceLastReloc(k) &gt; ATPsetting.LocationBeaconValidityDistance)
+	             or (MemLocationNotConfirmed(k-1)
+	                 and abs(MotionSinceMemorizedLocation(k)) &gt;= ATPsetting.MemLocValidityDistance)
+	             or CBTCwithoutKnownPath(k)
+	             or CoupledTypeInconsistent(k))
+</code></pre>
+<p>#Category=Functional
+#Contribution=SIL4
+#Allocation=ATP Software, Vital Embedded Setting
+#Source= [iTC_CC-SyAD-0186], [iTC_CC-SyAD-0187], [iTC_CC-SyAD-0188], [iTC_CC-SyAD-0189], [iTC_CC-SyAD-0190], [iTC_CC-SyAD-0191], [iTC_CC-SyAD-0192], [iTC_CC-SyAD-0193], [iTC_CC-SyAD-0195], [iTC_CC-SyAD-0199], [iTC_CC-SyAD-0364], [iTC_CC-SyAD-0137], [iTC_CC-SyAD-1209], [iTC_CC_ATP_SwHA-0194]
+[End]</p>

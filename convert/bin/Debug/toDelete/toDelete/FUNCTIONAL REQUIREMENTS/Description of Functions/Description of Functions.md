@@ -1,0 +1,53 @@
+﻿
+根据车载ATP软件需要完成的功能以其它们之间的层次关系，将ATP软件功能需求划分为如Table 51所示模块。
+According to the level of the ATP functionality, the software requirements divided into several functional blocks, as shown in Table 51.
+Table 51 Functions table
+
+|Functional blocks|Description|
+|-----|
+| REF _Ref345055530 \h F1- Manage System Information|管理列车状态|
+|| REF _Ref345055549 \h F11-Acquire Configuration Data|获取配置数据|
+|| REF _Ref345055566 \h  \* MERGEFORMAT F12-Manage Train Status|采集列车输入|
+|| REF _Ref345055575 \h F13-Manage Loop Hour with Distant ATP|与远端ATP通信|
+|| REF _Ref345055584 \h F14-Manage Variants in Block Mode|后备模式下变量管理|
+|| REF _Ref345055594 \h F15-Manage Variants in CBTC Mode|CBTC模式下变量管理|
+| REF _Ref345055653 \h F2-Measure Train Kinematics|列车运动学参数计算|
+|| REF _Ref345055658 \h F21-Manage Interface with |与VPB板接口|
+|| REF _Ref345055668 \h F22-Monitor the Odometer|监测编码里程计|
+|| REF _Ref345055677 \h F23-Manage the Odometer State|管理编码里程计状态|
+|| REF _Ref345055686 \h F24-Compensate Sliding Slipping Effect|打滑补偿|
+|| REF _Ref379959783 \h F25-Calculate Radar Speed|计算来自雷达的速度信息|
+|| REF _Ref379966118 \h F26-Detect Odometer Axle Lock|轴锁检测|
+|| REF _Ref379966126 \h F27-Compute Train Kinematics|计算列车运动学参数|
+|| REF _Ref379966136 \h F28-Calibrate Wheel Movement|轮径校准|
+| REF _Ref345055723 \h F3-Locate the Train on Track Map|在线路中定位|
+|| REF _Ref345055728 \h F31-Initialize Train Location|初始化列车定位|
+|| REF _Ref345055736 \h F32-Update Train Location|更新列车定位|
+|| REF _Ref345055747 \h F33-Confirm Train Localization|管理列车定位状态|
+| REF _Ref345055758 \h F4-Monitor Train Energy|监控列车能量|
+|| REF _Ref345055764 \h F41-Determine the EOA|计算列车授权运行位置|
+|| REF _Ref345055772 \h F42-Manage Coerced Permissive or Restrictive|强制允许或强制限制监控|
+|| REF _Ref345055780 \h F43-Manage Temporary Speed Restriction|管理临时限速|
+|| REF _Ref345055788 \h F44-Compute Train Energy|计算列车能量|
+|| REF _Ref345055794 \h F45-Process Singularities|限制奇点处理|
+|| REF _Ref345055806 \h F46-Determine Over Energy|判断列车是否超能|
+| REF _Ref345055824 \h F5-Monitor Train Position and Speed|监控列车位置和速度|
+|| REF _Ref345055830 \h F51-Moral Time |信号机模糊时间监控|
+|| REF _Ref345055837 \h F52-Prevent Train Moving in Undetectable Danger|不可侦测风险监控|
+|| REF _Ref345055848 \h F53-Monitor Train Speed|监控列车速度|
+|| REF _Ref345055856 \h F54-Monitor Rollback Train Speed|监控后溜|
+|| REF _Ref345055863 \h F55-Monitor Reverse Train Speed|监控倒车|
+| REF _Ref345055885 \h F6-Protect Passengers Entrance and Exit from the Train|车门管理相关|
+|| REF _Ref268160839 \h F61-Elaborate Door Opening Authorization|确认门授权|
+|| REF _Ref345055899 \h F62-Control PSD Opening and Closing Order|控制屏蔽门命令|
+|| REF _Ref278299667 \h F63-Monitor Status of Doors|监控门状态|
+|| REF _Ref268160951 \h  \* MERGEFORMAT F64-Protect Passengers during Emergency Evacuation|紧急逃生管理|
+| REF _Ref345055925 \h F7-Generate Output Orders|生成对外部系统的输出|
+|| REF _Ref345055931 \h F71-Outputs to Rolling-stock|计算列车输出|
+|| REF _Ref348853600 \h F72-Outputs to ZC|计算ZC的位置报告|
+|| REF _Ref345055948 \h F73-Outputs to CI Radio|计算联锁无线通信报文|
+| REF _Ref345055956 \h F8-Platform Relative & Assist Functions|平台相关辅助功能|
+|| REF _Ref345055964 \h F81-Initialize ATP software|软件初始化|
+|| REF _Ref345055971 \h F82-Manage Vital Time|管理安全时钟|
+|| REF _Ref345055983 \h F83-Manage Synchronization between two CPUs|上下CPU软件同步|
+

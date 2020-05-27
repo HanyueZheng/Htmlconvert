@@ -1,0 +1,13 @@
+﻿
+
+|Name|Nature|Provided by|
+|-----|
+|ATOcontrolTimeValid|Internal| REF _Ref345055549 \h F11-Acquire Configuration Data|
+|ATPsetting|Internal| REF _Ref345055549 \h F11-Acquire Configuration Data|
+|NonVitalRequest|External| REF _Ref348357813 \h Interface with CC Non Vital|
+|OdometerState|Internal| REF _Ref345055677 \h F23-Manage the Odometer State|
+|RadarRawSpeed|Internal| REF _Ref379959783 \h F25-Calculate Radar Speed|
+|RadarSpeedValid|Internal| REF _Ref379959783 \h F25-Calculate Radar Speed|
+|ValidWheelKinematic|Internal| REF _Ref345055677 \h F23-Manage the Odometer State|
+|WheelMinSpeed|Internal| REF _Ref345055677 \h F23-Manage the Odometer State|
+
