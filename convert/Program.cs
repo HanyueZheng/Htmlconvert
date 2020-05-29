@@ -16,9 +16,7 @@ namespace convert
     class Program
     {
         static List<List<string>> txtPatentlist = new List<List<string>>();
-        static WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open("test.docx", true);
-        //static WordprocessingDocument wordprocessingDocument = new WordprocessingDocument();
-        static MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+        
         static Body body = new Body();
 
         static void Main(string[] args)
@@ -39,8 +37,24 @@ namespace convert
             string path = "demo.html";
             Program.ParseHtml(path);
             string savepath = "test.docx";
-            ProcessTranslate(savepath);
-            string document = @" demo.docx";
+            if (!File.Exists(savepath))
+            {
+                WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Create(savepath, WordprocessingDocumentType.Document);
+                MainDocumentPart m = wordprocessingDocument.AddMainDocumentPart();
+                m.Document = new Document();
+                //m.StyleDefinitionsPart = new StyleDefinitionsPart();
+                wordprocessingDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>();
+                //StyleDefinitionsPart part = wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+                Body b = m.Document.AppendChild(new Body());
+                ProcessTranslate(wordprocessingDocument, m);              
+            }
+            else
+            {
+                WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(savepath, true);
+                MainDocumentPart m = wordprocessingDocument.MainDocumentPart;
+                ProcessTranslate(wordprocessingDocument, m);
+            }
+            
         }
 
         public static string ToHexString(string str)
@@ -253,16 +267,9 @@ namespace convert
             txtPatentlist.Add(plist);
         }
 
-        public static void ProcessTranslate(string document)
+        public static void ProcessTranslate(WordprocessingDocument wordprocessingDocument, MainDocumentPart m)
         {
-            if (!File.Exists(document))
-            {
-                FileStream f = File.Create(document);
-                StreamWriter sw = new StreamWriter(f);
-                sw.Write("\n");
-                f.Close();
-                f.Dispose();
-            }
+            
             int begintag = 0;
             int endtag = 0;
             int listcount = 1;
@@ -272,7 +279,7 @@ namespace convert
 
                 if (txtPatentlist[begintag][0] == "img")
                 {
-                    InsertAPicture(document, txtPatentlist[begintag][1]);
+                    InsertAPicture(wordprocessingDocument, m, txtPatentlist[begintag][1]);
                 }
 
                 //else if (txtPatentlist[begintag][0] == "br")
@@ -293,7 +300,7 @@ namespace convert
                     int trindex = txtPatentlist[begintag].IndexOf("tr") + 1;
                     int colcount = Int32.Parse(txtPatentlist[begintag][trindex]);
                     int rowcount = (endtag - begintag) / colcount;
-                    CreateTable(document, colcount, rowcount, begintag);
+                    CreateTable(wordprocessingDocument, colcount, rowcount, begintag);
                 }
 
                 else if (txtPatentlist[begintag].Contains("ul"))
@@ -411,7 +418,7 @@ namespace convert
 
                 else if (txtPatentlist[begintag].Contains("h1"))
                 {
-                    SetTitle(begintag, endtag, 1.ToString(), document);
+                    SetTitle(begintag, endtag, 1.ToString(), wordprocessingDocument);
                     //string path = @"demo.docx";
                     //CreateWordDocumentUsingMSWordStyles(begintag, endtag, path, "E:\\Microsoft Office\\Office16\\2052\\QuickStyles\\Default.dotx");
 
@@ -419,12 +426,12 @@ namespace convert
 
                 else if (txtPatentlist[begintag].Contains("h2"))
                 {
-                    SetTitle2(begintag, endtag, 2.ToString(), document);
+                    SetTitle2(begintag, endtag, 2.ToString(), wordprocessingDocument);
                 }
 
                 else if (txtPatentlist[begintag].Contains("h3"))
                 {
-                    SetTitle3(begintag, endtag, 3.ToString(), document);
+                    SetTitle3(begintag, endtag, 3.ToString(), wordprocessingDocument);
                 }
 
                 else
@@ -516,7 +523,7 @@ namespace convert
         }
 
 
-        public static void SetTitle2(int begintag, int endtag, string val, string document)
+        public static void SetTitle2(int begintag, int endtag, string val, WordprocessingDocument wordprocessingDocument)
         {
             //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
             //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
@@ -546,6 +553,10 @@ namespace convert
                 });
                 styleRunProperties1.Append(new FontSize() { Val = "36" });
                 style.Append(styleRunProperties1);
+                if (part.Styles == null)
+                {
+                    part.Styles = new Styles();
+                }
                 part.Styles.Append(style);
 
                 Paragraph p = new Paragraph();
@@ -560,13 +571,13 @@ namespace convert
                 }
 
                 body.Append(p);
-                wordprocessingDocument.MainDocumentPart.Document.Save();
+                //wordprocessingDocument.MainDocumentPart.Document.Save();
 
                 //wordprocessingDocument.Close();
             }
         }
 
-        public static void SetTitle3(int begintag, int endtag, string val, string document)
+        public static void SetTitle3(int begintag, int endtag, string val, WordprocessingDocument wordprocessingDocument)
         {
             //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
             //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
@@ -596,6 +607,10 @@ namespace convert
                 });
                 styleRunProperties1.Append(new FontSize() { Val = "28" });
                 style.Append(styleRunProperties1);
+                if (part.Styles == null)
+                {
+                    part.Styles = new Styles();
+                }
                 part.Styles.Append(style);
 
                 Paragraph p = new Paragraph();
@@ -610,13 +625,13 @@ namespace convert
                 }
 
                 body.Append(p);
-                wordprocessingDocument.MainDocumentPart.Document.Save();
+                //wordprocessingDocument.MainDocumentPart.Document.Save();
 
                 //wordprocessingDocument.Close();
             }
         }
 
-        public static void SetTitle(int begintag, int endtag, string val, string document)
+        public static void SetTitle(int begintag, int endtag, string val, WordprocessingDocument wordprocessingDocument)
         {
             //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(document, true);
             //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
@@ -646,6 +661,10 @@ namespace convert
                 });
                 styleRunProperties1.Append(new FontSize() { Val = "48" });
                 style.Append(styleRunProperties1);
+                if (part.Styles == null)
+                {
+                    part.Styles = new Styles();
+                }
                 part.Styles.Append(style);
 
                 Paragraph p = new Paragraph();
@@ -799,10 +818,10 @@ namespace convert
             wordprocessingDocument.MainDocumentPart.Document.Save();             
         }
 
-        public static void InsertAPicture(string document, string fileName)
+        public static void InsertAPicture(WordprocessingDocument document, MainDocumentPart m, string fileName)
         {
             using (WordprocessingDocument wordprocessingDocument =
-                WordprocessingDocument.Open(document, true))
+                document)
             {
                 MainDocumentPart mainPart = wordprocessingDocument.MainDocumentPart;
 
@@ -887,7 +906,7 @@ namespace convert
             wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
         }
 
-        public static void CreateTable(string fileName, int colcount, int rowcount, int begintag)
+        public static void CreateTable(WordprocessingDocument wordprocessingDocument, int colcount, int rowcount, int begintag)
         {
             //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(fileName, true);
             //Body body = wordprocessingDocument.MainDocumentPart.Document.Body;
@@ -934,7 +953,7 @@ namespace convert
                 tb.AppendChild(tr);
             }
             body.AppendChild(tb);
-            wordprocessingDocument.MainDocumentPart.Document.Save();
+            //wordprocessingDocument.MainDocumentPart.Document.Save();
             //wordprocessingDocument.Close();
         }
 
